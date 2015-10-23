@@ -1,7 +1,13 @@
-from from bitjws_login.db import *
+"""
+SQLAlchemy models
+"""
+import sqlalchemy as sa
+from db import SABase
 
 
-# SQLAlchemy models
+__all__ = ['User', 'UserKey', 'UserSetting', 'Setting', 'KeyPermission']
+
+
 class User(SABase):
     """A User"""
     __tablename__ = "user"
@@ -23,7 +29,7 @@ class UserKey(SABase):
     key = sa.Column(sa.Integer, primary_key=True, doc="primary key")
     createtime = sa.Column(sa.DateTime(), nullable=False)
     deactivated_at = sa.Column(sa.DateTime())
-    user_id = sa.Column("user_id", ForeignKey("user.id"), nullable=False)
+    user_id = sa.Column("user_id", sa.ForeignKey("user.id"), nullable=False)
     permissionbits = sa.Column(sa.BigInteger)
     # TODO what is this Enum of? How to make in sqlalchemy?
     # keytype = sa.Column(sa.Enum())
@@ -39,8 +45,8 @@ class UserSetting(SABase):
     id = sa.Column(sa.Integer, primary_key=True, doc="primary key")
     createtime = sa.Column(sa.DateTime(), nullable=False)
     deactivated_at = sa.Column(sa.DateTime())
-    user_id = sa.Column("user_id", ForeignKey("user.id"), nullable=False)
-    setting_id = sa.Column("setting_id", ForeignKey("setting.id"), nullable=False)
+    user_id = sa.Column("user_id", sa.ForeignKey("user.id"), nullable=False)
+    setting_id = sa.Column("setting_id", sa.ForeignKey("setting.id"), nullable=False)
     # TODO what is a better way of storing settings of unknown type? Enum?
     value = sa.Column(sa.String(36), nullable=False)
 

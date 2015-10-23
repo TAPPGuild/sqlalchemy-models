@@ -2,11 +2,12 @@
 Database access via SQLAlchemy and helper functions.
 """
 import sqlalchemy as sa
+import sqlalchemy.orm as orm
 from sqlalchemy.ext.declarative import declarative_base
 
 SABase = declarative_base()
 
-__all__ = ['sa', 'SABase', 'dictify_obj', 'query_to_obj']
+__all__ = ['SABase', 'dictify_obj', 'query_to_obj']
 
 
 def dictify_obj(obj, cls):
