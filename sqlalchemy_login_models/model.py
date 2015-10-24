@@ -15,7 +15,7 @@ class User(SABase):
     __tablename__ = "user"
 
     id = sa.Column(sa.Integer, primary_key=True, doc="primary key")
-    createtime = sa.Column(sa.DateTime())
+    createtime = sa.Column(sa.DateTime(), nullable=False)
     address = sa.Column(sa.String(36), unique=True, nullable=False)
     username = sa.Column(sa.String(37), unique=True, nullable=False)
 
