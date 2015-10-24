@@ -2,8 +2,10 @@
 SQLAlchemy models
 """
 import sqlalchemy as sa
-from db import SABase
+import sqlalchemy.orm as orm
+from sqlalchemy.ext.declarative import declarative_base
 
+SABase = declarative_base()
 
 __all__ = ['User', 'UserKey', 'UserSetting', 'Setting', 'KeyPermission']
 
@@ -30,6 +32,7 @@ class UserKey(SABase):
     createtime = sa.Column(sa.DateTime(), nullable=False)
     deactivated_at = sa.Column(sa.DateTime())
     user_id = sa.Column("user_id", sa.ForeignKey("user.id"), nullable=False)
+    user = orm.relationship("User")
     permissionbits = sa.Column(sa.BigInteger)
     # TODO what is this Enum of? How to make in sqlalchemy?
     # keytype = sa.Column(sa.Enum())
@@ -46,7 +49,9 @@ class UserSetting(SABase):
     createtime = sa.Column(sa.DateTime(), nullable=False)
     deactivated_at = sa.Column(sa.DateTime())
     user_id = sa.Column("user_id", sa.ForeignKey("user.id"), nullable=False)
+    user = orm.relationship("User")
     setting_id = sa.Column("setting_id", sa.ForeignKey("setting.id"), nullable=False)
+    setting = orm.relationship("Setting")
     # TODO what is a better way of storing settings of unknown type? Enum?
     value = sa.Column(sa.String(36), nullable=False)
 

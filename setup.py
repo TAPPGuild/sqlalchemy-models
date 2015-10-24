@@ -7,14 +7,14 @@ classifiers = [
 ]
 
 setup(
-    name='bitjws-login',
-    version='0.0.3',
-    description='User related data models for a server using an SQLAlchemy supported database.',
+    name='sqlalchemy-login-models',
+    version='0.0.4',
+    description=' Generic user and login capabilities for an application using SQLAlchemy.',
     author='deginner',
     author_email='support@deginner.com',
-    url='https://github.com/deginner/bitjws-login',
+    url='https://github.com/deginner/sqlalchemy-login-models',
     license='MIT',
     classifiers=classifiers,
     include_package_data=True,
-    packages=['bitjws_login']
+    packages=['sqlalchemy_login_models']
 )
