@@ -4,7 +4,7 @@ SQLAlchemy models
 import datetime
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
 
 SABase = declarative_base()
 
@@ -67,69 +67,57 @@ class KeyPermission(SABase):
             self.permission, self.name)
 
 
-# TODO do we want a pivot table for all User Settings?
+class UserSetting(object):
+    """A mixin for UserSetting classes"""
+    __name__ = __tablename__
 
-#class UserSetting(SABase):
-#    """A mixin for UserSetting classes"""
-#    __tablename__ = "user_setting"
-#    __name__ = __tablename__
-#
-#    id = sa.Column(sa.Integer, sa.Sequence('user_setting_id_seq'),
-#                   primary_key=True, doc="primary key")
-#    createtime = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
-#    user_id = sa.Column("user_id", sa.ForeignKey("user.id"), nullable=False)
-#    setting_name = sa.Column("setting_name", sa.ForeignKey("setting.name"), 
-#                             nullable=False)
+    createtime = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
+    @declared_attr
+    def user_id(cls):
+        return sa.Column(sa.Integer, sa.ForeignKey("user.id"), 
+                         nullable=False, name='user_id')
+    @declared_attr
+    def setting_name(cls):
+        return sa.Column(sa.Integer, sa.ForeignKey("setting.name"), 
+                         nullable=False, name='setting_name')
 
 
-class IntUserSetting(SABase):
+class IntUserSetting(SABase, UserSetting):
     """An Int Setting applied to a User"""
     __tablename__ = "int_user_setting"
 
     id = sa.Column(sa.Integer, sa.Sequence('user_int_setting_id_seq'),
                    primary_key=True, doc="primary key")
-    createtime = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
-    user_id = sa.Column("user_id", sa.ForeignKey("user.id"), nullable=False)
-    setting_name = sa.Column("setting_name", sa.ForeignKey("setting.name"), 
-                             nullable=False)
     value = sa.Column(sa.Integer, nullable=False)
 
     def __repr__(self):
-        return "<User(id=%s, setting_name='%s', value=%s)>" % (
+        return "<IntUserSetting(id=%s, setting_name='%s', value=%s)>" % (
             self.id, self.setting_name, self.value)
 
 
-class StrUserSetting(SABase):
+class StrUserSetting(SABase, UserSetting):
     """A Setting applied to a User"""
     __tablename__ = "str_user_setting"
 
     id = sa.Column(sa.Integer, sa.Sequence('user_str_setting_id_seq'),
                    primary_key=True, doc="primary key")
-    createtime = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
-    user_id = sa.Column("user_id", sa.ForeignKey("user.id"), nullable=False)
-    setting_name = sa.Column("setting_name", sa.ForeignKey("setting.name"), 
-                             nullable=False)
     value = sa.Column(sa.String(320), nullable=False)
 
     def __repr__(self):
-        return "<User(id=%s, setting_name='%s', value='%s')>" % (
+        return "<StrUserSetting(id=%s, setting_name='%s', value='%s')>" % (
             self.id, self.setting_name, self.value)
 
 
-class DateTimeUserSetting(SABase):
+class DateTimeUserSetting(SABase, UserSetting):
     """A Setting applied to a User"""
     __tablename__ = "date_time_user_setting"
 
     id = sa.Column(sa.Integer, sa.Sequence('user_date_time_setting_id_seq'), 
                    primary_key=True, doc="primary key")
-    createtime = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
-    user_id = sa.Column("user_id", sa.ForeignKey("user.id"), nullable=False)
-    setting_name = sa.Column("setting_name", sa.ForeignKey("setting.name"), 
-                             nullable=False)
     value = sa.Column(sa.DateTime(), nullable=False)
 
     def __repr__(self):
-        return "<User(id=%s, setting_name='%s', value='%s')>" % (
+        return "<DateTimeUserSetting(id=%s, setting_name='%s', value='%s')>" % (
             self.id, self.setting_name, self.value)
 
 
