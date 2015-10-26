@@ -1,1 +1,0 @@
-{"description": "A Setting", "required": ["id", "name"], "type": "object", "properties": {"id": {"type": "integer", "description": "primary key"}, "name": {"type": "string", "maxLength": 80}, "description": {"type": "string", "maxLength": 320}}, "title": "Setting"}

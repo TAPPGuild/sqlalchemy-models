@@ -16,5 +16,7 @@ setup(
     license='MIT',
     classifiers=classifiers,
     include_package_data=True,
-    packages=['sqlalchemy_login_models']
+    packages=['sqlalchemy_login_models'],
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest', 'pytest-cov']
 )

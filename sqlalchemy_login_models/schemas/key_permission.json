@@ -1,1 +1,0 @@
-{"description": "A Key Permission", "required": ["permission", "name"], "type": "object", "properties": {"permission": {"type": "integer", "description": "primary key"}, "name": {"type": "string", "maxLength": 80}, "description": {"type": "string", "maxLength": 320}}, "title": "KeyPermission"}

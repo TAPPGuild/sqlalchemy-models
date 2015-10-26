@@ -1,1 +1,0 @@
-{"description": "A User's API key", "required": ["key", "createtime", "user_id"], "type": "object", "properties": {"key": {"type": "integer", "description": "primary key"}, "createtime": {"type": "string", "format": "date-time"}, "deactivated_at": {"type": "string", "format": "date-time"}, "user_id": {"type": "integer"}, "permissionbits": {"type": "string"}}, "title": "UserKey"}

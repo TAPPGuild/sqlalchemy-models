@@ -1,3 +1,7 @@
 sqlalchemy
-alchemyjsonschema
+
+# pending pr #4
+#alchemyjsonschema
+git+https://github.com/isysd/alchemyjsonschema/
+
 

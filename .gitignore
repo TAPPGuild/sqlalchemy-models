@@ -58,3 +58,6 @@ target/
 
 # gedit temporary files
 *~
+
+# built json files
+*.json
