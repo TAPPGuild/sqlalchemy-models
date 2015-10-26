@@ -21,7 +21,8 @@ factory = ajs.SchemaFactory(ajs.AlsoChildrenWalker)
 
 eng_URI = 'sqlite:////tmp/test.db'
 ADDRESS = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
-USER = {'username': ADDRESS[0:8], 'address': ADDRESS}
+USER = {'username': ADDRESS[0:8]}
+USER_KEY = {'key': ADDRESS, 'keytype': 'public'}
 eng = sa.create_engine(eng_URI)
 ses = orm.sessionmaker(bind=eng)()
 for t in lmodels.__all__:
@@ -38,8 +39,8 @@ def test_User():
     udict = jsonify(user, user_schema)
     assert validate(udict, user_schema) is None
 
-    userkey = {'user_id': user.id, 'keytype': 'bitjws'}
-    ukey = lmodels.UserKey(**userkey)
+    USER_KEY['user_id'] = user.id
+    ukey = lmodels.UserKey(**USER_KEY)
     ses.add(ukey)
     ses.commit()
     ukey_schema = factory.__call__(ukey)
@@ -48,3 +49,4 @@ def test_User():
     print json.dumps(ukey_schema, indent=4)
     print ukey_dict['createtime']
     assert validate(ukey_dict, ukey_schema) is None
+

@@ -4,4 +4,3 @@ sqlalchemy
 #alchemyjsonschema
 git+https://github.com/isysd/alchemyjsonschema/
 
-
