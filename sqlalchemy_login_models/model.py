@@ -25,8 +25,8 @@ class User(SABase):
     salt = sa.Column(sa.String(12), unique=True)
 
     def __repr__(self):
-        return "<User(id=%s, username='%s', email='%s')>" % (
-            self.id, self.username, self.address)
+        return "<User(id=%s, username='%s')>" % (
+            self.id, self.username)
 
 
 class UserKey(SABase):
@@ -69,6 +69,7 @@ class KeyPermission(SABase):
 
 class UserSetting(object):
     """A mixin for UserSetting classes"""
+    __tablename__ = "user_setting"
     __name__ = __tablename__
 
     createtime = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)

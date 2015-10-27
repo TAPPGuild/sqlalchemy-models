@@ -14,5 +14,5 @@ rst:
 	pandoc --from=markdown_github --to=rst --output=README.rst README.md
 
 schemas:
-	alchemyjsonschema sqlalchemy_login_models.model --out-dir sqlalchemy_login_models/schemas/
+	alchemyjsonschema sqlalchemy_login_models.model --out-dir sqlalchemy_login_models/schemas
 
