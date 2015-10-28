@@ -6,13 +6,13 @@ import sqlalchemy as sa
 import sqlalchemy.orm as orm
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 
-SABase = declarative_base()
+Base = declarative_base()
 
-__all__ = ['User', 'UserKey', 'IntUserSetting', 'StrUserSetting',
+__all__ = ['Base', 'User', 'UserKey', 'IntUserSetting', 'StrUserSetting',
            'DateTimeUserSetting', 'Setting', 'KeyPermission']
 
 
-class User(SABase):
+class User(Base):
     """A User"""
     __tablename__ = "user"
     __name__ = __tablename__
@@ -21,15 +21,19 @@ class User(SABase):
                    doc="primary key")
     createtime = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
     username = sa.Column(sa.String(37), unique=True, nullable=False)
+
     # optionally generated on server and given to client for pre-send hashing
     salt = sa.Column(sa.String(12), unique=True)
+
+    # relationships
+    keys = orm.relationship("UserKey", backref="user")
 
     def __repr__(self):
         return "<User(id=%s, username='%s')>" % (
             self.id, self.username)
 
 
-class UserKey(SABase):
+class UserKey(Base):
     """A User's API key"""
     __tablename__ = "user_key"
     __name__ = __tablename__
@@ -39,18 +43,21 @@ class UserKey(SABase):
     key = sa.Column(sa.String(36), unique=True, nullable=False)
     createtime = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
     deactivated_at = sa.Column(sa.DateTime(), nullable=True)
-    user_id = sa.Column("user_id", sa.ForeignKey("user.id"), nullable=False)
     permissionbits = sa.Column(sa.BigInteger, nullable=True)
     keytype = sa.Column(sa.Enum("public", "tfa"))
-    # algorithm?
     last_nonce = sa.Column(sa.Integer, nullable=False, default=0)
+    # algorithm column?
+
+    # relationships
+    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
+#    user = orm.relationship("User", foreign_keys=[user_id])
 
     def __repr__(self):
         return "<UserKey(user_id=%s, keytype='%s')>" % (self.user_id,
                                                         self.keytype)
 
 
-class KeyPermission(SABase):
+class KeyPermission(Base):
     """A Key Permission"""
     __tablename__ = "key_permission"
     __name__ = __tablename__
@@ -77,13 +84,16 @@ class UserSetting(object):
     def user_id(cls):
         return sa.Column(sa.Integer, sa.ForeignKey("user.id"), 
                          nullable=False, name='user_id')
+    #user = orm.relationship("User", foreign_keys=[user_id])
+
     @declared_attr
     def setting_name(cls):
         return sa.Column(sa.Integer, sa.ForeignKey("setting.name"), 
                          nullable=False, name='setting_name')
+    #setting = orm.relationship("Setting", foreign_keys=[setting_name])
 
 
-class IntUserSetting(SABase, UserSetting):
+class IntUserSetting(Base, UserSetting):
     """An Int Setting applied to a User"""
     __tablename__ = "int_user_setting"
 
@@ -96,7 +106,7 @@ class IntUserSetting(SABase, UserSetting):
             self.id, self.setting_name, self.value)
 
 
-class StrUserSetting(SABase, UserSetting):
+class StrUserSetting(Base, UserSetting):
     """A Setting applied to a User"""
     __tablename__ = "str_user_setting"
 
@@ -109,7 +119,7 @@ class StrUserSetting(SABase, UserSetting):
             self.id, self.setting_name, self.value)
 
 
-class DateTimeUserSetting(SABase, UserSetting):
+class DateTimeUserSetting(Base, UserSetting):
     """A Setting applied to a User"""
     __tablename__ = "date_time_user_setting"
 
@@ -122,7 +132,7 @@ class DateTimeUserSetting(SABase, UserSetting):
             self.id, self.setting_name, self.value)
 
 
-class Setting(SABase):
+class Setting(Base):
     """A Setting"""
     __tablename__ = "setting"
     __name__ = __tablename__
