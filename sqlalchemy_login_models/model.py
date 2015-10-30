@@ -25,9 +25,6 @@ class User(Base):
     # optionally generated on server and given to client for pre-send hashing
     salt = sa.Column(sa.String(12), unique=True)
 
-    # relationships
-    keys = orm.relationship("UserKey", backref="user")
-
     def __repr__(self):
         return "<User(id=%s, username='%s')>" % (
             self.id, self.username)
@@ -50,7 +47,7 @@ class UserKey(Base):
 
     # relationships
     user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
-#    user = orm.relationship("User", foreign_keys=[user_id])
+    user = orm.relationship("User", foreign_keys=[user_id])
 
     def __repr__(self):
         return "<UserKey(user_id=%s, keytype='%s')>" % (self.user_id,
