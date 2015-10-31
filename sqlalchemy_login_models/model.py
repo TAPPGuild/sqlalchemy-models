@@ -41,7 +41,7 @@ class UserKey(Base):
     createtime = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
     deactivated_at = sa.Column(sa.DateTime(), nullable=True)
     permissionbits = sa.Column(sa.BigInteger, nullable=True)
-    keytype = sa.Column(sa.Enum("public", "tfa"))
+    keytype = sa.Column(sa.Enum("public", "tfa"), nullable=False)
     last_nonce = sa.Column(sa.Integer, nullable=False, default=0)
     # algorithm column?
 
