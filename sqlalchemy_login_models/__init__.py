@@ -2,7 +2,7 @@
 Base declarative and tools for model manipulation.
 """
 import re
-from sqlalchemy import Column, Sequence, Integer, String, ForeignKey
+from sqlalchemy import Column, Sequence, Integer, String, Text, ForeignKey
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
 
 __all__ = ['Base', 'generate_signature_class']
@@ -35,7 +35,7 @@ def generate_signature_class(cls):
                         Sequence('%s_id_seq' % cls.__tablename__),
                         primary_key=True, 
                         doc="primary key"),
-                   'data': Column(String(), nullable=False,
+                   'data': Column(Text(), nullable=False,
                         doc="The signed data"),
                    '%s_id' % cls.__tablename__: Column(Integer,
                         ForeignKey("%s.id" % cls.__tablename__),
