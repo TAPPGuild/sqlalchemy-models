@@ -15,7 +15,7 @@ import sqlalchemy.orm as orm
 import time
 from alchemyjsonschema.dictify import jsonify
 from jsonschema import validate
-from sqlalchemy_login_models import model as lmodels
+from sqlalchemy_login_models import generate_signature_class, Base, model as lmodels
 
 factory = ajs.SchemaFactory(ajs.AlsoChildrenWalker)
 
@@ -33,9 +33,9 @@ def test_User():
     user = lmodels.User(**USER)
     ses.add(user)
     ses.commit()
-    user_schema = factory.__call__(user)
-    print user_schema
-    print json.dumps(user_schema, indent=4)
+    user_schema = factory.__call__(lmodels.User)
+    #print user_schema
+    #print json.dumps(user_schema, indent=4)
     udict = jsonify(user, user_schema)
     assert validate(udict, user_schema) is None
 
@@ -43,10 +43,41 @@ def test_User():
     ukey = lmodels.UserKey(**USER_KEY)
     ses.add(ukey)
     ses.commit()
-    ukey_schema = factory.__call__(ukey)
+    ukey_schema = factory.__call__(lmodels.UserKey)
     ukey_dict = jsonify(ukey, ukey_schema)
-    print ukey_schema
-    print json.dumps(ukey_schema, indent=4)
-    print ukey_dict['createtime']
+    #print ukey_schema
+    del ukey_dict['user']
+    #print json.dumps(ukey_schema, indent=4)
     assert validate(ukey_dict, ukey_schema) is None
 
+
+def test_names():
+    assert lmodels.User.__name__ == 'User'
+    assert lmodels.User.__tablename__ == 'user'
+    assert lmodels.UserKey.__name__ == 'UserKey'
+    assert lmodels.UserKey.__tablename__ == 'user_key'
+
+def test_signature_class():
+    sigclass = generate_signature_class(lmodels.User)
+    assert hasattr(sigclass, 'data')
+    assert hasattr(sigclass, 'id')
+    assert hasattr(sigclass, '%s_id' % 'user')
+    assert sigclass.__name__ == 'UserSigs'
+    assert sigclass.__tablename__ == 'user_sigs'
+    sigkeyclass = generate_signature_class(lmodels.UserKey)
+    assert hasattr(sigkeyclass, 'data')
+    assert hasattr(sigkeyclass, 'id')
+    assert hasattr(sigkeyclass, '%s_id' % 'user_key')
+    assert sigkeyclass.__name__ == 'UserKeySigs'
+    assert sigkeyclass.__tablename__ == 'user_key_sigs'
+
+def test_override_id():
+    class StrIdClass(Base):
+        id = sa.Column(sa.String, primary_key=True, doc="primary key")
+
+    assert hasattr(StrIdClass, 'id')
+    try:
+        intId = StrIdClass(12)
+        assert isinstance(intId, str)  # should not run... is this best?
+    except:
+        pass

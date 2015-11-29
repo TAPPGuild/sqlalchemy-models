@@ -8,7 +8,7 @@ classifiers = [
 
 setup(
     name='sqlalchemy-login-models',
-    version='0.0.4',
+    version='0.0.5',
     description=' Generic user and login capabilities for an application using SQLAlchemy.',
     author='deginner',
     author_email='support@deginner.com',
