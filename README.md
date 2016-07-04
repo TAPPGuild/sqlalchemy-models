@@ -1,14 +1,14 @@
-# sqlalchemy-login-models
+# sqlalchemy-models
 
-User related data models for a server using [SQLAlchemy](http://www.sqlalchemy.org/), and [json schemas](http://json-schema.org/).
+Data models for a server using [SQLAlchemy](http://www.sqlalchemy.org/), and [json schemas](http://json-schema.org/).
 
- * User class
- * User Permissions
- * User Settings
+ * Users w/ Permissions & Settings
+ * Wallet models (Debits, Credits, Balances)
+ 
 
 ## Installation
 
-To ensure forward compatibility, the best way to install sqlalchemy-login-models is with make.
+To ensure forward compatibility, the best way to install sqlalchemy-models is with make.
 
 `make install`
 
@@ -18,7 +18,7 @@ To ensure forward compatibility, the best way to install sqlalchemy-login-models
 
 `make schemas`
 
-This will generate a schema for each table, and write them to  `sqlalchemy_login_models/schemas/<tablename>.json`.
+This will generate a schema for each table, and write them to  `sqlalchemy_odels/schemas/<tablename>.json`.
 
 ## Signature Storage
 
