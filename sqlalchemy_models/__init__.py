@@ -7,16 +7,11 @@ import sqlalchemy as sa
 import sqlalchemy.orm as orm
 from decimal import Decimal
 from ledger import Amount
-from sqlalchemy.ext.declarative import as_declarative, declared_attr,\
-                                       declarative_base
-
-#Base = declarative_base()
+from sqlalchemy.ext.declarative import as_declarative, declared_attr
+from sqlalchemy.types import TypeDecorator, DECIMAL
 
 __all__ = ['sa', 'orm', 'Base', 'generate_signature_class',
            'LedgerAmount']
-
-from sqlalchemy.types import TypeDecorator, DECIMAL
-import json
 
 
 class LedgerAmount(TypeDecorator):
@@ -127,4 +122,3 @@ def setup_logging(cfg=None):
     loglevel = cfg.LOGLEVEL if cfg and hasattr(cfg, 'LOGLEVEL') else logging.INFO
     logging.basicConfig(filename=logfile, level=loglevel)
     return logging.getLogger(__name__)
-

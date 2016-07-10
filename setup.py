@@ -8,7 +8,7 @@ classifiers = [
 
 setup(
     name='sqlalchemy-models',
-    version='0.0.5.1',
+    version='0.0.5.9',
     description=' Generic data models for an application using SQLAlchemy.',
     author='Git Guild',
     author_email='support@gitguild.com',
@@ -18,5 +18,6 @@ setup(
     include_package_data=True,
     packages=['sqlalchemy_models'],
     setup_requires=['pytest-runner'],
+    install_requires=['sqlalchemy>=1.0.9'],
     tests_require=['pytest', 'pytest-cov']
 )

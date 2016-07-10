@@ -4,20 +4,15 @@ the various models and ensure the results are as expected.
 
 Lazy loading and custom data types the only things that might go wrong.
 """
-import alchemyjsonschema as ajs
-import copy
+#import alchemyjsonschema as ajs
 import datetime
-import json
-import pytest
 import random
 import string
-import time
-from alchemyjsonschema.dictify import jsonify
-from jsonschema import validate
+#from alchemyjsonschema.dictify import jsonify
+#from jsonschema import validate
 from ledger import Amount
-from sqlalchemy_models import (sa, orm, generate_signature_class, Base,
-                               LedgerAmount, create_session_engine, 
-                               setup_database,
+from sqlalchemy_models import (sa, generate_signature_class, Base,
+                               create_session_engine, setup_database,
                                user as um, wallet as wm, exchange as em)
 
 eng_URI = 'sqlite:////tmp/test.db'
@@ -29,16 +24,14 @@ USER_KEY = {'key': ADDRESS, 'keytype': 'public'}
 
 setup_database(eng, modules=[um, wm, em])
 
-factory = ajs.SchemaFactory(ajs.AlsoChildrenWalker)
+#factory = ajs.SchemaFactory(ajs.AlsoChildrenWalker)
 
-
+"""
 def test_User():
     user = um.User(**USER)
     ses.add(user)
     ses.commit()
     user_schema = factory.__call__(um.User)
-    #print user_schema
-    #print json.dumps(user_schema, indent=4)
     udict = jsonify(user, user_schema)
     assert validate(udict, user_schema) is None
 
@@ -48,10 +41,9 @@ def test_User():
     ses.commit()
     ukey_schema = factory.__call__(um.UserKey)
     ukey_dict = jsonify(ukey, ukey_schema)
-    #print ukey_schema
     del ukey_dict['user']
-    #print json.dumps(ukey_schema, indent=4)
     assert validate(ukey_dict, ukey_schema) is None
+"""
 
 
 def test_names():
@@ -79,7 +71,6 @@ def test_signature_class():
 def test_override_id():
     class StrIdClass(Base):
         id = sa.Column(sa.String, primary_key=True, doc="primary key")
-
     assert hasattr(StrIdClass, 'id')
     try:
         intId = StrIdClass(12)
@@ -97,8 +88,6 @@ def test_load_trade():
     ses.commit()
     ses.close()
     dbtrade = ses.query(em.Trade).filter(em.Trade.trade_id=="testx|%s" % tid).one()
-   # dbtrade.load_trade_commodities()
-    print dbtrade
     assert dbtrade is not None
     assert isinstance(dbtrade.price, Amount)
     assert isinstance(dbtrade.amount, Amount)
@@ -117,8 +106,6 @@ def test_load_ticker():
     ses.commit()
     ses.close()
     dbtick = ses.query(em.Ticker).order_by(em.Ticker.time.desc()).first()
-    ses.close()
-    print dbtick
     assert dbtick is not None
     assert isinstance(dbtick.bid, Amount)
     assert isinstance(dbtick.ask, Amount)
@@ -139,7 +126,6 @@ def test_load_limit_order():
     ses.commit()
     ses.close()
     dbo = ses.query(em.LimitOrder).order_by(em.LimitOrder.time.desc()).first()
-    print dbo
     assert dbo is not None
     assert isinstance(dbo.price, Amount)
     assert isinstance(dbo.amount, Amount)
@@ -184,3 +170,122 @@ def test_load_balance():
     assert "100.00000000 USD" == str(dbb2.total)
     assert "100.00000000 USD" == str(dbb2.available)
 
+
+def test_trade_ledger():
+    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    date = datetime.datetime.utcfromtimestamp(1468126581)
+    trade = em.Trade(tid, 'testx', 'BTC_USD', 'sell',
+                     Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
+                     Amount("%s USD" % 1), 'quote', date)
+    le = trade.get_ledger_entry()
+    print le
+    ex = """P 2016/07/10 04:56:21 BTC 770.00000000 USD
+P 2016/07/10 04:56:21 USD 0.00129870 BTC
+2016/07/10 04:56:21 testx BTC_USD sell
+    ;<Trade(trade_id='testx|{0}', side='sell', amount=1.10000000 BTC, price=770.00000000 USD, fee=1.00000000 USD, fee_side='quote', market='BTC_USD', exchange='testx', time=2016/07/10 04:56:21)>
+    Assets:testx:USD    846.00000000 USD @ 0.00129870 BTC
+    FX:BTC_USD:sell   -847.00000000 USD @ 0.00129870 BTC
+    Assets:testx:BTC    -1.10000000 BTC @ 770.00000000 USD
+    FX:BTC_USD:sell   1.10000000 BTC @ 770.00000000 USD
+    Expenses:TradeFee    1.00000000 USD @ 0.00129870 BTC
+""".format(tid)
+    print ex
+    assert le == ex
+
+    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    trade = em.Trade(tid, 'testx', 'BTC_USD', 'buy',
+                     Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
+                     Amount("%s USD" % 1), 'quote', date)
+    le = trade.get_ledger_entry()
+    print le
+    ex = """P 2016/07/10 04:56:21 BTC 770.00000000 USD
+P 2016/07/10 04:56:21 USD 0.00129870 BTC
+2016/07/10 04:56:21 testx BTC_USD buy
+    ;<Trade(trade_id='testx|{0}', side='buy', amount=1.10000000 BTC, price=770.00000000 USD, fee=1.00000000 USD, fee_side='quote', market='BTC_USD', exchange='testx', time=2016/07/10 04:56:21)>
+    Assets:testx:USD    -848.00000000 USD @ 0.00129870 BTC
+    FX:BTC_USD:buy   847.00000000 USD @ 0.00129870 BTC
+    Assets:testx:BTC    1.10000000 BTC @ 770.00000000 USD
+    FX:BTC_USD:buy   -1.10000000 BTC @ 770.00000000 USD
+    Expenses:TradeFee    1.00000000 USD @ 0.00129870 BTC
+""".format(tid)
+    print ex
+    assert le == ex
+
+    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    trade = em.Trade(tid, 'testx', 'BTC_USD', 'sell',
+                     Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
+                     Amount("%s BTC" % 0.01), 'base', date)
+    le = trade.get_ledger_entry()
+    print le
+    ex = """P 2016/07/10 04:56:21 BTC 770.00000000 USD
+P 2016/07/10 04:56:21 USD 0.00129870 BTC
+2016/07/10 04:56:21 testx BTC_USD sell
+    ;<Trade(trade_id='testx|{0}', side='sell', amount=1.10000000 BTC, price=770.00000000 USD, fee=0.01000000 BTC, fee_side='base', market='BTC_USD', exchange='testx', time=2016/07/10 04:56:21)>
+    Assets:testx:USD    839.30000000 USD @ 0.00129870 BTC
+    FX:BTC_USD:sell   -839.30000000 USD @ 0.00129870 BTC
+    Assets:testx:BTC    -1.10000000 BTC @ 770.00000000 USD
+    FX:BTC_USD:sell   1.09000000 BTC @ 770.00000000 USD
+    Expenses:TradeFee    0.01000000 BTC @ 770.00000000 USD
+""".format(tid)
+    print ex
+    assert le == ex
+
+    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    trade = em.Trade(tid, 'testx', 'BTC_USD', 'buy',
+                     Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
+                     Amount("%s BTC" % 0.01), 'base', date)
+    le = trade.get_ledger_entry()
+    print le
+    ex = """P 2016/07/10 04:56:21 BTC 770.00000000 USD
+P 2016/07/10 04:56:21 USD 0.00129870 BTC
+2016/07/10 04:56:21 testx BTC_USD buy
+    ;<Trade(trade_id='testx|{0}', side='buy', amount=1.10000000 BTC, price=770.00000000 USD, fee=0.01000000 BTC, fee_side='base', market='BTC_USD', exchange='testx', time=2016/07/10 04:56:21)>
+    Assets:testx:USD    -847.00000000 USD @ 0.00129870 BTC
+    FX:BTC_USD:buy   847.00000000 USD @ 0.00129870 BTC
+    Assets:testx:BTC    1.09000000 BTC @ 770.00000000 USD
+    FX:BTC_USD:buy   -1.10000000 BTC @ 770.00000000 USD
+    Expenses:TradeFee    0.01000000 BTC @ 770.00000000 USD
+""".format(tid)
+    print ex
+    assert le == ex
+
+
+def test_credit_ledger():
+    user = um.User(username = ''.join([random.choice(string.ascii_letters) for n in xrange(8)]))
+    ses.add(user)
+    ses.commit()
+    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    date = datetime.datetime.utcfromtimestamp(1468126581)
+    credit = wm.Credit(Amount("%s BTC" % 1.1), tid, 'BTC', 'Bitcoin',
+                      'complete', 'testx', 'testx|%s' % tid, user.id, date)
+
+    le = credit.get_ledger_entry()
+    print le
+    ex = """2016/07/10 04:56:21 testx credit BTC
+    Assets:testx:BTC:credit    1.10000000 BTC
+    Equity:Wallet:BTC:debit   -1.10000000 BTC
+
+"""
+    print ex
+    assert le == ex
+
+
+def test_debit_ledger():
+    user = um.User(username = ''.join([random.choice(string.ascii_letters) for n in xrange(8)]))
+    ses.add(user)
+    ses.commit()
+    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    date = datetime.datetime.utcfromtimestamp(1468126581)
+    debit = wm.Debit(-Amount("%s BTC" % 1.1), Amount("%s BTC" % 0.0001), tid, 'BTC', 'Bitcoin',
+                      'complete', 'testx', 'testx|%s' % tid, user.id, date)
+
+    le = debit.get_ledger_entry()
+    print le
+    ex = """2016/07/10 04:56:21 testx debit BTC
+    Assets:testx:BTC:debit    -1.10000000 BTC
+    Equity:Wallet:BTC:credit   1.09990000 BTC
+    Expenses:MinerFee   0.00010000 BTC
+
+"""
+    print ex
+    assert le == ex
