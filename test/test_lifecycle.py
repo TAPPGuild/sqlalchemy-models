@@ -4,12 +4,12 @@ the various models and ensure the results are as expected.
 
 Lazy loading and custom data types the only things that might go wrong.
 """
-#import alchemyjsonschema as ajs
+# import alchemyjsonschema as ajs
 import datetime
 import random
 import string
-#from alchemyjsonschema.dictify import jsonify
-#from jsonschema import validate
+# from alchemyjsonschema.dictify import jsonify
+# from jsonschema import validate
 from ledger import Amount
 from sqlalchemy_models import (sa, generate_signature_class, Base,
                                create_session_engine, setup_database,
@@ -24,7 +24,7 @@ USER_KEY = {'key': ADDRESS, 'keytype': 'public'}
 
 setup_database(eng, modules=[um, wm, em])
 
-#factory = ajs.SchemaFactory(ajs.AlsoChildrenWalker)
+# factory = ajs.SchemaFactory(ajs.AlsoChildrenWalker)
 
 """
 def test_User():
@@ -71,23 +71,24 @@ def test_signature_class():
 def test_override_id():
     class StrIdClass(Base):
         id = sa.Column(sa.String, primary_key=True, doc="primary key")
+
     assert hasattr(StrIdClass, 'id')
     try:
-        intId = StrIdClass(12)
-        assert isinstance(intId, str)  # should not run... is this best?
+        intid = StrIdClass(12)
+        assert isinstance(intid, str)  # should not run... is this best?
     except:
         pass
 
 
 def test_load_trade():
-    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
     trade = em.Trade(tid, 'testx', 'BTC_USD', 'sell',
                      Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
                      Amount("%s USD" % 1), 'quote', datetime.datetime.utcnow())
     ses.add(trade)
     ses.commit()
     ses.close()
-    dbtrade = ses.query(em.Trade).filter(em.Trade.trade_id=="testx|%s" % tid).one()
+    dbtrade = ses.query(em.Trade).filter(em.Trade.trade_id == "testx|%s" % tid).one()
     assert dbtrade is not None
     assert isinstance(dbtrade.price, Amount)
     assert isinstance(dbtrade.amount, Amount)
@@ -98,10 +99,10 @@ def test_load_trade():
 
 
 def test_load_ticker():
-    ticker = em.Ticker(Amount("%s USD" % 769), Amount("%s USD" % 771), 
-                      Amount("%s USD" % 800), Amount("%s USD" % 700),
-                      Amount("%s BTC" % 10000.1), Amount("%s USD" % 770),
-                      'BTC_USD', 'testx')
+    ticker = em.Ticker(Amount("%s USD" % 769), Amount("%s USD" % 771),
+                       Amount("%s USD" % 800), Amount("%s USD" % 700),
+                       Amount("%s BTC" % 10000.1), Amount("%s USD" % 770),
+                       'BTC_USD', 'testx')
     ses.add(ticker)
     ses.commit()
     ses.close()
@@ -119,8 +120,8 @@ def test_load_ticker():
 
 
 def test_load_limit_order():
-    oid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
-    order = em.LimitOrder(Amount("%s USD" % 770), Amount("%s BTC" % 1.1), 
+    oid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
+    order = em.LimitOrder(Amount("%s USD" % 770), Amount("%s BTC" % 1.1),
                           'BTC_USD', 'ask', 'testx', oid)
     ses.add(order)
     ses.commit()
@@ -133,17 +134,18 @@ def test_load_limit_order():
     assert "1.10000000 BTC" == str(dbo.amount)
 
 
+# noinspection PyAugmentAssignment,PyAugmentAssignment
 def test_load_balance():
-    uname = ''.join([random.choice(string.ascii_letters) for n in xrange(9)])
+    uname = ''.join([random.choice(string.ascii_letters) for letter in xrange(9)])
     u = um.User(username=uname)
     ses.add(u)
     ses.commit()
-    ref = ''.join([random.choice(string.ascii_letters) for n in xrange(9)])
-    bal = wm.Balance(Amount("%s BTC" % 1.1), Amount("%s BTC" % 1.01), 
-                          'BTC', ref, u.id)
+    ref = ''.join([random.choice(string.ascii_letters) for letter in xrange(9)])
+    bal = wm.Balance(Amount("%s BTC" % 1.1), Amount("%s BTC" % 1.01),
+                     'BTC', ref, u.id)
     ses.add(bal)
-    bal2 = wm.Balance(Amount("%s USD" % 100), Amount("%s BTC" % 100), 
-                            'USD', ref, u.id)
+    bal2 = wm.Balance(Amount("%s USD" % 100), Amount("%s BTC" % 100),
+                      'USD', ref, u.id)
     ses.add(bal2)
 
     ses.commit()
@@ -172,7 +174,7 @@ def test_load_balance():
 
 
 def test_trade_ledger():
-    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
     date = datetime.datetime.utcfromtimestamp(1468126581)
     trade = em.Trade(tid, 'testx', 'BTC_USD', 'sell',
                      Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
@@ -192,7 +194,7 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
     print ex
     assert le == ex
 
-    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
     trade = em.Trade(tid, 'testx', 'BTC_USD', 'buy',
                      Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
                      Amount("%s USD" % 1), 'quote', date)
@@ -211,7 +213,7 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
     print ex
     assert le == ex
 
-    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
     trade = em.Trade(tid, 'testx', 'BTC_USD', 'sell',
                      Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
                      Amount("%s BTC" % 0.01), 'base', date)
@@ -230,7 +232,7 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
     print ex
     assert le == ex
 
-    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
     trade = em.Trade(tid, 'testx', 'BTC_USD', 'buy',
                      Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
                      Amount("%s BTC" % 0.01), 'base', date)
@@ -251,13 +253,13 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
 
 
 def test_credit_ledger():
-    user = um.User(username = ''.join([random.choice(string.ascii_letters) for n in xrange(8)]))
+    user = um.User(username=''.join([random.choice(string.ascii_letters) for letter in xrange(8)]))
     ses.add(user)
     ses.commit()
-    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
     date = datetime.datetime.utcfromtimestamp(1468126581)
     credit = wm.Credit(Amount("%s BTC" % 1.1), tid, 'BTC', 'Bitcoin',
-                      'complete', 'testx', 'testx|%s' % tid, user.id, date)
+                       'complete', 'testx', 'testx|%s' % tid, user.id, date)
 
     le = credit.get_ledger_entry()
     print le
@@ -271,13 +273,13 @@ def test_credit_ledger():
 
 
 def test_debit_ledger():
-    user = um.User(username = ''.join([random.choice(string.ascii_letters) for n in xrange(8)]))
+    user = um.User(username=''.join([random.choice(string.ascii_letters) for letter in xrange(8)]))
     ses.add(user)
     ses.commit()
-    tid = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+    tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
     date = datetime.datetime.utcfromtimestamp(1468126581)
     debit = wm.Debit(-Amount("%s BTC" % 1.1), Amount("%s BTC" % 0.0001), tid, 'BTC', 'Bitcoin',
-                      'complete', 'testx', 'testx|%s' % tid, user.id, date)
+                     'complete', 'testx', 'testx|%s' % tid, user.id, date)
 
     le = debit.get_ledger_entry()
     print le

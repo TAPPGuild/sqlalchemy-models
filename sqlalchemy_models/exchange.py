@@ -5,7 +5,6 @@ from . import sa, orm, Base, LedgerAmount
 from ledger import Amount
 import datetime
 
-
 __all__ = ['LimitOrder', 'Ticker', 'Trade']
 
 
@@ -24,7 +23,7 @@ class LimitOrder(Base):
         self.market = market
         self.side = side
         self.exchange = exchange
-        self.order_id = "%s|%s" % (exchange, order_id) # to ensure uniqueness
+        self.order_id = "%s|%s" % (exchange, order_id)  # to ensure uniqueness
 
     @orm.reconstructor
     def load_commodities(self):
@@ -64,10 +63,10 @@ class Ticker(Base):
         self.exchange = exchange
 
     def __repr__(self):
-        return "<Ticker(bid=%s, ask=%s, high=%s, low=%s, volume=%s, last=%s, market='%s', exchange='%s', time=%s)>" % (\
-                    self.bid, self.ask, self.high,
-                    self.low, self.volume, self.last,
-                    self.market, self.exchange, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+        return "<Ticker(bid=%s, ask=%s, high=%s, low=%s, volume=%s, last=%s, market='%s', exchange='%s', time=%s)>" % (
+            self.bid, self.ask, self.high,
+            self.low, self.volume, self.last,
+            self.market, self.exchange, self.time.strftime('%Y/%m/%d %H:%M:%S'))
 
     @orm.reconstructor
     def load_commodities(self):
@@ -114,7 +113,7 @@ class Trade(Base):
 
     def __init__(self, trade_id, exchange, market, side, amount, price, fee,
                  fee_side, time):
-        self.trade_id = "%s|%s" % (exchange, trade_id) # to ensure uniqueness
+        self.trade_id = "%s|%s" % (exchange, trade_id)  # to ensure uniqueness
         self.exchange = exchange
         self.market = market
         self.side = side
@@ -125,10 +124,10 @@ class Trade(Base):
         self.time = time
 
     def __repr__(self):
-        return "<Trade(trade_id='%s', side='%s', amount=%s, price=%s, fee=%s, fee_side='%s', market='%s', exchange='%s', time=%s)>" % (\
-                    self.trade_id, self.side, self.amount,
-                    self.price, self.fee, self.fee_side,
-                    self.market, self.exchange, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+        return "<Trade(trade_id='%s', side='%s', amount=%s, price=%s, fee=%s, fee_side='%s', market='%s', exchange='%s', time=%s)>" % (
+            self.trade_id, self.side, self.amount,
+            self.price, self.fee, self.fee_side,
+            self.market, self.exchange, self.time.strftime('%Y/%m/%d %H:%M:%S'))
 
     @orm.reconstructor
     def load_commodities(self):
@@ -139,16 +138,16 @@ class Trade(Base):
         if isinstance(self.price, Amount):
             self.price = Amount("{0:.8f} {1}".format(self.price.to_double(), quote))
         else:
-            self.price = Amount("{0:.8f} {1}".format(self.price, quote))
+            self.price = Amount("{0:.8f} {1}".format(float(self.price), quote))
         if isinstance(self.amount, Amount):
             self.amount = Amount("{0:.8f} {1}".format(self.amount.to_double(), base))
         else:
-            self.amount = Amount("{0:.8f} {1}".format(self.amount, base))
+            self.amount = Amount("{0:.8f} {1}".format(float(self.amount), base))
         fee_currency = base if self.fee_side == 'base' else quote
         if isinstance(self.fee, Amount):
-            self.fee = Amount("{0:.8f} {1}".format(self.fee.to_double(), fee_currency))
+            self.fee = Amount("{0:.8f} {1}".format(float(self.fee.to_double()), fee_currency))
         else:
-            self.fee = Amount("{0:.8f} {1}".format(self.fee, fee_currency))
+            self.fee = Amount("{0:.8f} {1}".format(float(self.fee), fee_currency))
 
     def get_ledger_entry(self):
         ledger = ""
@@ -169,35 +168,46 @@ class Trade(Base):
                 if self.side == 'sell':
                     b_vol = self.amount - self.fee
                     b_mine = -self.amount
-                    q_vol = -Amount("%s %s" % (b_vol.quantity_string(), quote)) * self.price
+                    q_vol = -Amount(
+                        "{{0:.{0}}} {1}".format(self.price.precision, quote).format(self.price * b_vol.number()))
+                    # setattr(q_vol, 'precision', self.price.precision)
                     q_mine = -q_vol
                 else:
                     b_vol = -self.amount
                     b_mine = self.amount - self.fee
-                    q_vol = Amount("%s %s" % (self.amount.quantity_string(), quote)) * self.price
+
+                    q_vol = Amount(
+                        "{{0:.{0}}} {1}".format(self.price.precision, quote).format(self.price * self.amount.number()))
+                    # setattr(q_vol, 'precision', self.price.precision)
                     q_mine = -q_vol
             else:
                 feeline += "{0}\n".format(q_price)
                 if self.side == 'sell':
                     b_vol = self.amount
                     b_mine = -self.amount
-                    q_vol = -Amount("%s %s" % (self.amount.quantity_string(), quote)) * self.price
+                    q_vol = -Amount(
+                        "{{0:.{0}}} {1}".format(self.price.precision, quote).format(self.price * self.amount.number()))
+                    # setattr(q_vol, 'precision', self.price.precision)
                     q_mine = -q_vol - self.fee
                 else:
                     b_vol = -self.amount
                     b_mine = self.amount
-                    q_vol = Amount("%s %s" % (self.amount.quantity_string(), quote)) * self.price
+                    q_vol = Amount(
+                        "{{0:.{0}}} {1}".format(self.price.precision, quote).format(self.price * self.amount.number()))
+                    # setattr(q_vol, 'precision', self.price.precision)
                     q_mine = -q_vol - self.fee
         else:
             if self.side == 'sell':
                 b_vol = self.amount
                 b_mine = -self.amount
-                q_vol = -Amount("%s %s" % (self.amount.quantity_string(), quote)) * self.price
+                q_vol = -self.price * self.amount.number()
+                # setattr(q_vol, 'precision', self.price.precision)
                 q_mine = -q_vol
             else:
                 b_vol = -self.amount
                 b_mine = self.amount
-                q_vol = Amount("%s %s" % (self.amount.quantity_string(), quote)) * self.price
+                q_vol = self.price * self.amount.number()
+                # setattr(q_vol, 'precision', self.price.precision)
                 q_mine = -q_vol
 
         ledger += "    Assets:{0}:{1}    {2} @ {3}\n".format(self.exchange, quote, q_mine, q_price)
@@ -206,4 +216,3 @@ class Trade(Base):
         ledger += "    FX:{0}:{1}   {2} @ {3}\n".format(self.market, self.side, b_vol, self.price)
         ledger += feeline
         return ledger
-

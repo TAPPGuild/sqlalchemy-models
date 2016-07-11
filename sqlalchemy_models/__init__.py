@@ -32,7 +32,7 @@ class LedgerAmount(TypeDecorator):
 
     def process_result_value(self, value, dialect):
         if value is not None and not isinstance(value, Amount):
-            value = Amount(str(value))
+            value = Amount("{0:.8f}".format(float(value)))
         return value
 
 
@@ -62,18 +62,18 @@ def generate_signature_class(cls):
     :param class cls: The declarative model to generate a signature class for.
     :return: The signature class, as a declarative derived from Base.
     """
-    return type("%sSigs" % cls.__name__, (Base, ),
+    return type("%sSigs" % cls.__name__, (Base,),
                 {'__tablename__': "%s_sigs" % cls.__tablename__,
                  'id': sa.Column(sa.Integer,
-                 sa.Sequence('%s_id_seq' % cls.__tablename__),
-                 primary_key=True,
-                 doc="primary key"),
-                'data': sa.Column(sa.Text(), nullable=False,
-                                  doc="The signed data"),
-                '%s_id' % cls.__tablename__: sa.Column(sa.Integer,
-                        sa.ForeignKey("%s.id" % cls.__tablename__),
-                        nullable=False)
-             })
+                                 sa.Sequence('%s_id_seq' % cls.__tablename__),
+                                 primary_key=True,
+                                 doc="primary key"),
+                 'data': sa.Column(sa.Text(), nullable=False,
+                                   doc="The signed data"),
+                 '%s_id' % cls.__tablename__: sa.Column(sa.Integer,
+                                                        sa.ForeignKey("%s.id" % cls.__tablename__),
+                                                        nullable=False)
+                 })
 
 
 def create_session_engine(uri=None, cfg=None):

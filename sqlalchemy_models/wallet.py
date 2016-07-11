@@ -5,7 +5,6 @@ from . import sa, orm, Base, LedgerAmount
 from ledger import Amount
 import datetime
 
-
 __all__ = ['Balance', 'Address', 'Credit', 'Debit', 'HWBalance']
 
 
@@ -48,7 +47,8 @@ class Balance(Base):
 
 class Address(Base):
     """A payment network Address or account number."""
-    address = sa.Column(sa.String(64), nullable=False)  # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r, 	XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
+    address = sa.Column(sa.String(64),
+                        nullable=False)  # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r, 	XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
     currency = sa.Column(sa.String(4), nullable=False)  # i.e. BTC, DASH, USD
     network = sa.Column(sa.String(64), nullable=False)  # i.e. Bitcoin, Dash, Crypto Capital
     state = sa.Column(sa.Enum("pending", "active", "blocked"), nullable=False)
@@ -71,12 +71,14 @@ class Address(Base):
 class Credit(Base):
     """A Credit, which adds tokens to a User's Balance."""
     amount = sa.Column(LedgerAmount, nullable=False)
-    address = sa.Column(sa.String(64), nullable=False)  # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r, XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
+    address = sa.Column(sa.String(64),
+                        nullable=False)  # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r, XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
     currency = sa.Column(sa.String(4), nullable=False)  # i.e. BTC, DASH, USD
     network = sa.Column(sa.String(64), nullable=False)  # i.e. Bitcoin, Dash, Crypto Capital
-    state = sa.Column(sa.Enum("unconfirmed", "complete", "error"), nullable=False)
+    state = sa.Column(sa.Enum("unconfirmed", "complete", "error", "canceled"), nullable=False)
     reference = sa.Column(sa.String(256), nullable=True)  # i.e. invoice#1
-    ref_id = sa.Column(sa.String(256), nullable=False, unique=True)  # i.e. 4cef42f9ff334b9b11bffbd9da21da54176103d92c1c6e4442cbe28ca43540fd:0
+    ref_id = sa.Column(sa.String(256), nullable=False,
+                       unique=True)  # i.e. 4cef42f9ff334b9b11bffbd9da21da54176103d92c1c6e4442cbe28ca43540fd:0
     time = sa.Column(sa.DateTime(), nullable=False)
 
     # foreign key reference to the owner of this
@@ -98,9 +100,9 @@ class Credit(Base):
         self.time = time
 
     def __repr__(self):
-        return "<Credit(amount=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', ref_id='%s', time=%s)>" % (\
-                    self.amount, self.address, self.currency, self.network,
-                    self.state, self.reference, self.ref_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+        return "<Credit(amount=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', ref_id='%s', time=%s)>" % (
+            self.amount, self.address, self.currency, self.network,
+            self.state, self.reference, self.ref_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
 
     def get_ledger_entry(self):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
@@ -109,7 +111,6 @@ class Credit(Base):
         ledger += "    Equity:Wallet:{0}:debit   {1}\n".format(self.currency, -self.amount)
         ledger += "\n"
         return ledger
-
 
     @orm.reconstructor
     def load_commodities(self):
@@ -126,12 +127,14 @@ class Debit(Base):
     """A Debit, which subtracts tokens from a User's Balance."""
     amount = sa.Column(LedgerAmount, nullable=False)
     fee = sa.Column(LedgerAmount, nullable=False)
-    address = sa.Column(sa.String(64), nullable=False)  # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r,  XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
+    address = sa.Column(sa.String(64),
+                        nullable=False)  # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r,  XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
     currency = sa.Column(sa.String(4), nullable=False)  # i.e. BTC, DASH, USDT
     network = sa.Column(sa.String(64), nullable=False)  # i.e. Bitcoin, Dash, Crypto Capital
-    state = sa.Column(sa.Enum("unconfirmed", "complete", "error"), nullable=False)
+    state = sa.Column(sa.Enum("unconfirmed", "complete", "error", "canceled"), nullable=False)
     reference = sa.Column(sa.String(256), nullable=True)  # i.e. invoice#1
-    ref_id = sa.Column(sa.String(256), nullable=False)  # i.e. 4cef42f9ff334b9b11bffbd9da21da54176103d92c1c6e4442cbe28ca43540fd
+    ref_id = sa.Column(sa.String(256),
+                       nullable=False)  # i.e. 4cef42f9ff334b9b11bffbd9da21da54176103d92c1c6e4442cbe28ca43540fd
     time = sa.Column(sa.DateTime(), nullable=False)
 
     # foreign key reference to the owner of this
@@ -154,10 +157,10 @@ class Debit(Base):
         self.time = time
 
     def __repr__(self):
-        return "<Debit(amount=%s, fee=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', ref_id='%s', time=%s)>" % (\
-                    self.amount, self.fee, self.address,
-                    self.currency, self.network, self.state,
-                    self.reference, self.ref_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+        return "<Debit(amount=%s, fee=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', ref_id='%s', time=%s)>" % (
+            self.amount, self.fee, self.address,
+            self.currency, self.network, self.state,
+            self.reference, self.ref_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
 
     def get_ledger_entry(self):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
@@ -214,4 +217,3 @@ class HWBalance(Base):
             self.total = Amount("{0:.8f} {1}".format(self.total.to_double(), self.currency))
         else:
             self.total = Amount("{0:.8f} {1}".format(self.total, self.currency))
-
