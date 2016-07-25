@@ -1,10 +1,7 @@
 """
 SQLAlchemy models for Wallets
 """
-from . import sa, orm, Base, LedgerAmount
-from ledger import Amount
-import datetime
-
+from __init__ import sa, Base, LedgerAmount
 
 __all__ = ['Quote', 'QuoteRequest', 'Payment']
 
@@ -16,8 +13,8 @@ class QuoteRequest(Base):
 
     id = sa.Column(sa.Integer, primary_key=True, doc="primary key")
     asset_specified = sa.Column(sa.Enum("in", "out"))
-    in_amount = sa.Column(sa.BigInteger, nullable=False)
-    out_amount = sa.Column(sa.BigInteger, nullable=False)
+    in_amount = sa.Column(LedgerAmount, nullable=False)
+    out_amount = sa.Column(LedgerAmount, nullable=False)
     fixed_rate = sa.Column(sa.Boolean, nullable=False)
 
     out_address = sa.Column(sa.String, nullable=False)
@@ -38,8 +35,8 @@ class QuoteRequest(Base):
             self.in_amount = 0
         self.in_currency = in_currency
         self.out_currency = out_currency
-        self.out_address = address
-        self.return_address = address
+        self.out_address = out_address
+        self.return_address = return_address
         self.fixed_rate = fixed_rate
 
 
@@ -49,14 +46,14 @@ class Quote(Base):
     __name__ = "quote"
 
     id = sa.Column(sa.Integer, primary_key=True, doc="primary key")
-    in_amount = sa.Column(sa.BigInteger, nullable=False)
-    out_amount = sa.Column(sa.BigInteger, nullable=False)
+    in_amount = sa.Column(LedgerAmount, nullable=False)
+    out_amount = sa.Column(LedgerAmount, nullable=False)
     in_address = sa.Column(sa.String, nullable=False)
     out_address = sa.Column(sa.String, nullable=False)
     return_address = sa.Column(sa.String, nullable=False)
     in_currency = sa.Column(sa.String(4), nullable=False)
     out_currency = sa.Column(sa.String(4), nullable=False)
-    rate = sa.Column(sa.BitInteger, nullable=False)
+    rate = sa.Column(LedgerAmount, nullable=False)
 
     def __init__(self, in_amount, in_currency, 
                  out_amount, out_currency, in_address, out_address, 
@@ -77,7 +74,7 @@ class Payment(Base):
     __name__ = "payment"
 
     id = sa.Column(sa.Integer, primary_key=True, doc="primary key")
-    out_amount = sa.Column(sa.BigInteger, nullable=False)
+    out_amount = sa.Column(LedgerAmount, nullable=False)
     out_address = sa.Column(sa.String, nullable=False)
     out_currency = sa.Column(sa.String(4), nullable=False)
     debit_id = sa.Column(sa.Integer, nullable=True)
@@ -88,5 +85,5 @@ class Payment(Base):
         self.out_amount = out_amount
         self.in_currency = in_currency
         self.out_currency = out_currency
-        debit_id = debit_id
+        self.debit_id = debit_id
 

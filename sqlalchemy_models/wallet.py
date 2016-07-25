@@ -1,7 +1,7 @@
 """
 SQLAlchemy models for Wallets
 """
-from . import sa, orm, Base, LedgerAmount
+from __init__ import sa, orm, Base, LedgerAmount
 from ledger import Amount
 import datetime
 
@@ -29,6 +29,7 @@ class Balance(Base):
         self.currency = currency
         self.reference = reference
         self.user_id = user_id
+        self.load_commodities()
 
     @orm.reconstructor
     def load_commodities(self):
@@ -98,11 +99,13 @@ class Credit(Base):
         self.ref_id = ref_id
         self.user_id = user_id
         self.time = time
+        self.load_commodities()
 
     def __repr__(self):
-        return "<Credit(amount=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', ref_id='%s', time=%s)>" % (
-            self.amount, self.address, self.currency, self.network,
-            self.state, self.reference, self.ref_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+        return "<Credit(amount=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', " \
+               "ref_id='%s', time=%s)>" % (
+                   self.amount, self.address, self.currency, self.network,
+                   self.state, self.reference, self.ref_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
 
     def get_ledger_entry(self):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
@@ -155,12 +158,14 @@ class Debit(Base):
         self.ref_id = ref_id
         self.user_id = user_id
         self.time = time
+        self.load_commodities()
 
     def __repr__(self):
-        return "<Debit(amount=%s, fee=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', ref_id='%s', time=%s)>" % (
-            self.amount, self.fee, self.address,
-            self.currency, self.network, self.state,
-            self.reference, self.ref_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+        return "<Debit(amount=%s, fee=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', " \
+               "ref_id='%s', time=%s)>" % (
+                   self.amount, self.fee, self.address,
+                   self.currency, self.network, self.state,
+                   self.reference, self.ref_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
 
     def get_ledger_entry(self):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
@@ -203,6 +208,7 @@ class HWBalance(Base):
         self.total = total
         self.currency = currency
         self.network = network
+        self.load_commodities()
 
     @orm.reconstructor
     def load_commodities(self):

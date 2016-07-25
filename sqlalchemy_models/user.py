@@ -2,9 +2,10 @@
 SQLAlchemy models
 """
 import datetime
-from . import sa, orm, Base
-from ledger import Amount
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
+
+from sqlalchemy.ext.declarative import declared_attr
+
+from __init__ import sa, orm, Base
 
 __all__ = ['User', 'UserKey', 'IntUserSetting',
            'StrUserSetting', 'DateTimeUserSetting', 'Setting', 'KeyPermission']
@@ -22,8 +23,7 @@ class User(Base):
     salt = sa.Column(sa.String(12), unique=True)
 
     def __repr__(self):
-        return "<User(id=%s, username='%s')>" % (
-            self.id, self.username)
+        return "<User(id=%s, username='%s')>" % (self.id, self.username)
 
 
 class UserKey(Base):

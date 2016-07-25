@@ -1,17 +1,20 @@
 """
 Base declarative and tools for model manipulation.
 """
-import logging
+import copy
+import json
+import os
 import re
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
-from decimal import Decimal
+
+from alchemyjsonschema.dictify import jsonify
 from ledger import Amount
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
-from sqlalchemy.types import TypeDecorator, DECIMAL
+from sqlalchemy.types import TypeDecorator, FLOAT
 
 __all__ = ['sa', 'orm', 'Base', 'generate_signature_class',
-           'LedgerAmount']
+           'LedgerAmount', 'create_session_engine', 'setup_database']
 
 
 class LedgerAmount(TypeDecorator):
@@ -23,11 +26,15 @@ class LedgerAmount(TypeDecorator):
         LedgerAmount()
     """
 
-    impl = DECIMAL
+    @property
+    def python_type(self):
+        return Amount
+
+    impl = FLOAT
 
     def process_bind_param(self, value, dialect):
         if value is not None and hasattr(value, 'to_double'):
-            value = Decimal(value.to_double())
+            value = float(value.to_double())
         return value
 
     def process_result_value(self, value, dialect):
@@ -72,8 +79,7 @@ def generate_signature_class(cls):
                                    doc="The signed data"),
                  '%s_id' % cls.__tablename__: sa.Column(sa.Integer,
                                                         sa.ForeignKey("%s.id" % cls.__tablename__),
-                                                        nullable=False)
-                 })
+                                                        nullable=False)})
 
 
 def create_session_engine(uri=None, cfg=None):
@@ -111,14 +117,21 @@ def setup_database(eng, modules=None, models=None):
             mod.metadata.create_all(eng)
 
 
-def setup_logging(cfg=None):
-    """
-    Create a logger.
+def get_schemas():
+    fpath = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'definitions.json')
+    schemas = ""
+    for line in open(fpath, 'r'):
+        schemas += line
+    return json.loads(schemas)['definitions']
 
-    :param cfg: The configuration object with logging info.
-    :return: The session and the engine as a list (in that order)
-    """
-    logfile = cfg.LOGFILE if cfg and hasattr(cfg, 'LOGFILE') else 'server.log'
-    loglevel = cfg.LOGLEVEL if cfg and hasattr(cfg, 'LOGLEVEL') else logging.INFO
-    logging.basicConfig(filename=logfile, level=loglevel)
-    return logging.getLogger(__name__)
+
+def jsonify2(obj, name):
+    # TODO replace this with a cached definitions patch
+    # this is inefficient to do each time...
+    schemas = get_schemas()
+    spec = copy.copy(schemas[name])
+    spec['definitions'] = schemas
+    for attr in obj.__dict__:
+        if isinstance(getattr(obj, attr), Amount):
+            setattr(obj, attr, getattr(obj, attr).to_double())
+    return json.dumps(jsonify(obj, spec))

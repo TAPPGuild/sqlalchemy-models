@@ -2,48 +2,230 @@
 Static data models don't have much to test, but this is a place to load
 the various models and ensure the results are as expected.
 
-Lazy loading and custom data types the only things that might go wrong.
+Session setup and custom data types the only things that might go wrong.
 """
-# import alchemyjsonschema as ajs
 import datetime
+import json
+import os
 import random
 import string
-# from alchemyjsonschema.dictify import jsonify
-# from jsonschema import validate
+import unittest
+
+from jsonschema import validate
 from ledger import Amount
 from sqlalchemy_models import (sa, generate_signature_class, Base,
-                               create_session_engine, setup_database,
+                               create_session_engine, setup_database, get_schemas, jsonify2,
                                user as um, wallet as wm, exchange as em)
+from tapp_config import get_config
 
-eng_URI = 'sqlite:////tmp/test.db'
-ses, eng = create_session_engine(uri=eng_URI)
+from sqlalchemy_models.util import create_user, build_definitions
 
-ADDRESS = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
-USER = {'username': ADDRESS[0:8]}
-USER_KEY = {'key': ADDRESS, 'keytype': 'public'}
+SCHEMAS = get_schemas()
 
-setup_database(eng, modules=[um, wm, em])
 
-# factory = ajs.SchemaFactory(ajs.AlsoChildrenWalker)
+def test_create_session_engine_uri():
+    uri = "sqlite:////tmp/uri_test.db"
+    ses, eng = create_session_engine(uri=uri)
+    assert str(eng.url) == uri
+
+
+def test_create_session_engine_cfg():
+    cfg = get_config("test")
+    ses, eng = create_session_engine(cfg=cfg)
+    assert str(eng.url) == cfg.get('db', 'SA_ENGINE_URI')
+
+
+def test_setup_db_model():
+    uri = "/tmp/uri_test.db"
+    try:
+        os.remove(uri)
+    except OSError:
+        pass
+    uri = 'sqlite:///' + uri
+    ses, eng = create_session_engine(uri=uri)
+    setup_database(eng, models=[um.User])
+    ses.add(um.User(username='testuser'))
+    try:
+        ses.commit()
+    except Exception as e:
+        print e
+        assert e == "should not throw an error"
+
+
+class TestSetupLogger(unittest.TestCase):
+    def setUp(self):
+        self.uri = "sqlite:////tmp/test.db"
+        self.ses, self.eng = create_session_engine(uri=self.uri)
+
+    def tearDown(self):
+        try:
+            os.remove(self.uri)
+        except OSError:
+            pass
+
+    def test_User(self):
+        address = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+        userdict = {'username': address[0:8]}
+        user_key = {'key': address, 'keytype': 'public'}
+
+        user = um.User(**userdict)
+        self.ses.add(user)
+        self.ses.commit()
+        user_schema = SCHEMAS['User']
+        udict = json.loads(jsonify2(user, 'User'))
+        assert validate(udict, user_schema) is None
+
+        user_key['user_id'] = user.id
+        ukey = um.UserKey(**user_key)
+        self.ses.add(ukey)
+        self.ses.commit()
+        ukey_schema = SCHEMAS['UserKey']
+        ukey_dict = json.loads(jsonify2(ukey, 'UserKey'))
+        del ukey_dict['user']
+        assert validate(ukey_dict, ukey_schema) is None
+
+    def test_create_user(self):
+        address = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
+        userdict = {'username': address[0:8]}
+        user = create_user(userdict['username'], address, self.ses)
+        assert user.username == userdict['username']
+        ukey = self.ses.query(um.UserKey).filter(um.UserKey.user_id == user.id).first()
+        assert ukey.key == address
+
+    def test_override_id(self):
+        class StrIdClass(Base):
+            id = sa.Column(sa.String, primary_key=True, doc="primary key")
+
+        assert hasattr(StrIdClass, 'id')
+        try:
+            intid = StrIdClass(12)
+            assert isinstance(intid, str)  # should not run... is this best?
+        except:
+            pass
+
+    def test_load_trade(self):
+        tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
+        trade = em.Trade(tid, 'testx', 'BTC_USD', 'sell',
+                         Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
+                         Amount("%s USD" % 1), 'quote', datetime.datetime.utcnow())
+        self.ses.add(trade)
+        self.ses.commit()
+        self.ses.close()
+        dbtrade = self.ses.query(em.Trade).filter(em.Trade.trade_id == "testx|%s" % tid).one()
+        assert dbtrade is not None
+        assert isinstance(dbtrade.price, Amount)
+        assert isinstance(dbtrade.amount, Amount)
+        assert isinstance(dbtrade.fee, Amount)
+        assert "770.00000000 USD" == str(dbtrade.price)
+        assert "1.10000000 BTC" == str(dbtrade.amount)
+        assert "1.00000000 USD" == str(dbtrade.fee)
+
+    def test_load_ticker(self):
+        ticker = em.Ticker(Amount("%s USD" % 769), Amount("%s USD" % 771),
+                           Amount("%s USD" % 800), Amount("%s USD" % 700),
+                           Amount("%s BTC" % 10000.1), Amount("%s USD" % 770),
+                           'BTC_USD', 'testx')
+        self.ses.add(ticker)
+        self.ses.commit()
+        self.ses.close()
+        dbtick = self.ses.query(em.Ticker).order_by(em.Ticker.time.desc()).first()
+        assert dbtick is not None
+        assert isinstance(dbtick.bid, Amount)
+        assert isinstance(dbtick.ask, Amount)
+        assert isinstance(dbtick.high, Amount)
+        assert isinstance(dbtick.low, Amount)
+        assert isinstance(dbtick.volume, Amount)
+        assert isinstance(dbtick.last, Amount)
+        assert "770.00000000 USD" == str(dbtick.last)
+        assert "10000.10000000 BTC" == str(dbtick.volume)
+        assert "769.00000000 USD" == str(dbtick.bid)
+
+    def test_load_limit_order(self):
+        oid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
+        order = em.LimitOrder(Amount("%s USD" % 770), Amount("%s BTC" % 1.1),
+                              'BTC_USD', 'ask', 'testx', oid)
+        self.ses.add(order)
+        self.ses.commit()
+        self.ses.close()
+        dbo = self.ses.query(em.LimitOrder).order_by(em.LimitOrder.create_time.desc()).first()
+        assert dbo is not None
+        assert isinstance(dbo.price, Amount)
+        assert isinstance(dbo.amount, Amount)
+        assert "770.00000000 USD" == str(dbo.price)
+        assert "1.10000000 BTC" == str(dbo.amount)
+
+    # noinspection PyAugmentAssignment,PyAugmentAssignment
+    def test_load_balance(self):
+        uname = ''.join([random.choice(string.ascii_letters) for letter in xrange(9)])
+        u = um.User(username=uname)
+        self.ses.add(u)
+        self.ses.commit()
+        ref = ''.join([random.choice(string.ascii_letters) for letter in xrange(9)])
+        bal = wm.Balance(Amount("%s BTC" % 1.1), Amount("%s BTC" % 1.01),
+                         'BTC', ref, u.id)
+        self.ses.add(bal)
+        bal2 = wm.Balance(Amount("%s USD" % 100), Amount("%s BTC" % 100),
+                          'USD', ref, u.id)
+        self.ses.add(bal2)
+
+        self.ses.commit()
+        bid = bal.id
+        bid2 = bal2.id
+        self.ses.close()
+        dbb = self.ses.query(wm.Balance).filter(wm.Balance.id == bid).first()
+        assert dbb is not None
+        assert isinstance(dbb.available, Amount)
+        assert isinstance(dbb.total, Amount)
+        assert "1.10000000 BTC" == str(dbb.total)
+        assert "1.01000000 BTC" == str(dbb.available)
+
+        amount = Amount("%s BTC" % 0.01)
+        dbb.available = dbb.available + amount
+        dbb.total = dbb.total + amount
+        self.ses.add(dbb)
+        self.ses.commit()
+
+        dbb2 = self.ses.query(wm.Balance).filter(wm.Balance.id == bid2).first()
+        assert dbb2 is not None
+        assert isinstance(dbb2.available, Amount)
+        assert isinstance(dbb2.total, Amount)
+        assert "100.00000000 USD" == str(dbb2.total)
+        assert "100.00000000 USD" == str(dbb2.available)
+
+    def test_credit_ledger(self):
+        user = um.User(username=''.join([random.choice(string.ascii_letters) for letter in xrange(8)]))
+        self.ses.add(user)
+        self.ses.commit()
+        tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
+        date = datetime.datetime.utcfromtimestamp(1468126581)
+        credit = wm.Credit(Amount("%s BTC" % 1.1), tid, 'BTC', 'Bitcoin',
+                           'complete', 'testx', 'testx|%s' % tid, user.id, date)
+
+        le = credit.get_ledger_entry()
+        ex = """2016/07/10 04:56:21 testx credit BTC
+    Assets:testx:BTC:credit    1.10000000 BTC
+    Equity:Wallet:BTC:debit   -1.10000000 BTC
 
 """
-def test_User():
-    user = um.User(**USER)
-    ses.add(user)
-    ses.commit()
-    user_schema = factory.__call__(um.User)
-    udict = jsonify(user, user_schema)
-    assert validate(udict, user_schema) is None
+        assert le == ex
 
-    USER_KEY['user_id'] = user.id
-    ukey = um.UserKey(**USER_KEY)
-    ses.add(ukey)
-    ses.commit()
-    ukey_schema = factory.__call__(um.UserKey)
-    ukey_dict = jsonify(ukey, ukey_schema)
-    del ukey_dict['user']
-    assert validate(ukey_dict, ukey_schema) is None
+    def test_debit_ledger(self):
+        user = um.User(username=''.join([random.choice(string.ascii_letters) for letter in xrange(8)]))
+        self.ses.add(user)
+        self.ses.commit()
+        tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
+        date = datetime.datetime.utcfromtimestamp(1468126581)
+        debit = wm.Debit(-Amount("%s BTC" % 1.1), Amount("%s BTC" % 0.0001), tid, 'BTC', 'Bitcoin',
+                         'complete', 'testx', 'testx|%s' % tid, user.id, date)
+
+        le = debit.get_ledger_entry()
+        ex = """2016/07/10 04:56:21 testx debit BTC
+    Assets:testx:BTC:debit    -1.10000000 BTC
+    Equity:Wallet:BTC:credit   1.09990000 BTC
+    Expenses:MinerFee   0.00010000 BTC
+
 """
+        assert le == ex
 
 
 def test_names():
@@ -68,111 +250,6 @@ def test_signature_class():
     assert sigkeyclass.__tablename__ == 'user_key_sigs'
 
 
-def test_override_id():
-    class StrIdClass(Base):
-        id = sa.Column(sa.String, primary_key=True, doc="primary key")
-
-    assert hasattr(StrIdClass, 'id')
-    try:
-        intid = StrIdClass(12)
-        assert isinstance(intid, str)  # should not run... is this best?
-    except:
-        pass
-
-
-def test_load_trade():
-    tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
-    trade = em.Trade(tid, 'testx', 'BTC_USD', 'sell',
-                     Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
-                     Amount("%s USD" % 1), 'quote', datetime.datetime.utcnow())
-    ses.add(trade)
-    ses.commit()
-    ses.close()
-    dbtrade = ses.query(em.Trade).filter(em.Trade.trade_id == "testx|%s" % tid).one()
-    assert dbtrade is not None
-    assert isinstance(dbtrade.price, Amount)
-    assert isinstance(dbtrade.amount, Amount)
-    assert isinstance(dbtrade.fee, Amount)
-    assert "770.00000000 USD" == str(dbtrade.price)
-    assert "1.10000000 BTC" == str(dbtrade.amount)
-    assert "1.00000000 USD" == str(dbtrade.fee)
-
-
-def test_load_ticker():
-    ticker = em.Ticker(Amount("%s USD" % 769), Amount("%s USD" % 771),
-                       Amount("%s USD" % 800), Amount("%s USD" % 700),
-                       Amount("%s BTC" % 10000.1), Amount("%s USD" % 770),
-                       'BTC_USD', 'testx')
-    ses.add(ticker)
-    ses.commit()
-    ses.close()
-    dbtick = ses.query(em.Ticker).order_by(em.Ticker.time.desc()).first()
-    assert dbtick is not None
-    assert isinstance(dbtick.bid, Amount)
-    assert isinstance(dbtick.ask, Amount)
-    assert isinstance(dbtick.high, Amount)
-    assert isinstance(dbtick.low, Amount)
-    assert isinstance(dbtick.volume, Amount)
-    assert isinstance(dbtick.last, Amount)
-    assert "770.00000000 USD" == str(dbtick.last)
-    assert "10000.10000000 BTC" == str(dbtick.volume)
-    assert "769.00000000 USD" == str(dbtick.bid)
-
-
-def test_load_limit_order():
-    oid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
-    order = em.LimitOrder(Amount("%s USD" % 770), Amount("%s BTC" % 1.1),
-                          'BTC_USD', 'ask', 'testx', oid)
-    ses.add(order)
-    ses.commit()
-    ses.close()
-    dbo = ses.query(em.LimitOrder).order_by(em.LimitOrder.time.desc()).first()
-    assert dbo is not None
-    assert isinstance(dbo.price, Amount)
-    assert isinstance(dbo.amount, Amount)
-    assert "770.00000000 USD" == str(dbo.price)
-    assert "1.10000000 BTC" == str(dbo.amount)
-
-
-# noinspection PyAugmentAssignment,PyAugmentAssignment
-def test_load_balance():
-    uname = ''.join([random.choice(string.ascii_letters) for letter in xrange(9)])
-    u = um.User(username=uname)
-    ses.add(u)
-    ses.commit()
-    ref = ''.join([random.choice(string.ascii_letters) for letter in xrange(9)])
-    bal = wm.Balance(Amount("%s BTC" % 1.1), Amount("%s BTC" % 1.01),
-                     'BTC', ref, u.id)
-    ses.add(bal)
-    bal2 = wm.Balance(Amount("%s USD" % 100), Amount("%s BTC" % 100),
-                      'USD', ref, u.id)
-    ses.add(bal2)
-
-    ses.commit()
-    bid = bal.id
-    bid2 = bal2.id
-    ses.close()
-    dbb = ses.query(wm.Balance).filter(wm.Balance.id == bid).first()
-    assert dbb is not None
-    assert isinstance(dbb.available, Amount)
-    assert isinstance(dbb.total, Amount)
-    assert "1.10000000 BTC" == str(dbb.total)
-    assert "1.01000000 BTC" == str(dbb.available)
-
-    amount = Amount("%s BTC" % 0.01)
-    dbb.available = dbb.available + amount
-    dbb.total = dbb.total + amount
-    ses.add(dbb)
-    ses.commit()
-
-    dbb2 = ses.query(wm.Balance).filter(wm.Balance.id == bid2).first()
-    assert dbb2 is not None
-    assert isinstance(dbb2.available, Amount)
-    assert isinstance(dbb2.total, Amount)
-    assert "100.00000000 USD" == str(dbb2.total)
-    assert "100.00000000 USD" == str(dbb2.available)
-
-
 def test_trade_ledger():
     tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
     date = datetime.datetime.utcfromtimestamp(1468126581)
@@ -180,7 +257,6 @@ def test_trade_ledger():
                      Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
                      Amount("%s USD" % 1), 'quote', date)
     le = trade.get_ledger_entry()
-    print le
     ex = """P 2016/07/10 04:56:21 BTC 770.00000000 USD
 P 2016/07/10 04:56:21 USD 0.00129870 BTC
 2016/07/10 04:56:21 testx BTC_USD sell
@@ -191,7 +267,6 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
     FX:BTC_USD:sell   1.10000000 BTC @ 770.00000000 USD
     Expenses:TradeFee    1.00000000 USD @ 0.00129870 BTC
 """.format(tid)
-    print ex
     assert le == ex
 
     tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
@@ -199,7 +274,6 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
                      Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
                      Amount("%s USD" % 1), 'quote', date)
     le = trade.get_ledger_entry()
-    print le
     ex = """P 2016/07/10 04:56:21 BTC 770.00000000 USD
 P 2016/07/10 04:56:21 USD 0.00129870 BTC
 2016/07/10 04:56:21 testx BTC_USD buy
@@ -210,7 +284,6 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
     FX:BTC_USD:buy   -1.10000000 BTC @ 770.00000000 USD
     Expenses:TradeFee    1.00000000 USD @ 0.00129870 BTC
 """.format(tid)
-    print ex
     assert le == ex
 
     tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
@@ -218,7 +291,6 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
                      Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
                      Amount("%s BTC" % 0.01), 'base', date)
     le = trade.get_ledger_entry()
-    print le
     ex = """P 2016/07/10 04:56:21 BTC 770.00000000 USD
 P 2016/07/10 04:56:21 USD 0.00129870 BTC
 2016/07/10 04:56:21 testx BTC_USD sell
@@ -229,7 +301,6 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
     FX:BTC_USD:sell   1.09000000 BTC @ 770.00000000 USD
     Expenses:TradeFee    0.01000000 BTC @ 770.00000000 USD
 """.format(tid)
-    print ex
     assert le == ex
 
     tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
@@ -237,7 +308,6 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
                      Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
                      Amount("%s BTC" % 0.01), 'base', date)
     le = trade.get_ledger_entry()
-    print le
     ex = """P 2016/07/10 04:56:21 BTC 770.00000000 USD
 P 2016/07/10 04:56:21 USD 0.00129870 BTC
 2016/07/10 04:56:21 testx BTC_USD buy
@@ -248,46 +318,14 @@ P 2016/07/10 04:56:21 USD 0.00129870 BTC
     FX:BTC_USD:buy   -1.10000000 BTC @ 770.00000000 USD
     Expenses:TradeFee    0.01000000 BTC @ 770.00000000 USD
 """.format(tid)
-    print ex
     assert le == ex
 
 
-def test_credit_ledger():
-    user = um.User(username=''.join([random.choice(string.ascii_letters) for letter in xrange(8)]))
-    ses.add(user)
-    ses.commit()
-    tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
-    date = datetime.datetime.utcfromtimestamp(1468126581)
-    credit = wm.Credit(Amount("%s BTC" % 1.1), tid, 'BTC', 'Bitcoin',
-                       'complete', 'testx', 'testx|%s' % tid, user.id, date)
-
-    le = credit.get_ledger_entry()
-    print le
-    ex = """2016/07/10 04:56:21 testx credit BTC
-    Assets:testx:BTC:credit    1.10000000 BTC
-    Equity:Wallet:BTC:debit   -1.10000000 BTC
-
-"""
-    print ex
-    assert le == ex
-
-
-def test_debit_ledger():
-    user = um.User(username=''.join([random.choice(string.ascii_letters) for letter in xrange(8)]))
-    ses.add(user)
-    ses.commit()
-    tid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
-    date = datetime.datetime.utcfromtimestamp(1468126581)
-    debit = wm.Debit(-Amount("%s BTC" % 1.1), Amount("%s BTC" % 0.0001), tid, 'BTC', 'Bitcoin',
-                     'complete', 'testx', 'testx|%s' % tid, user.id, date)
-
-    le = debit.get_ledger_entry()
-    print le
-    ex = """2016/07/10 04:56:21 testx debit BTC
-    Assets:testx:BTC:debit    -1.10000000 BTC
-    Equity:Wallet:BTC:credit   1.09990000 BTC
-    Expenses:MinerFee   0.00010000 BTC
-
-"""
-    print ex
-    assert le == ex
+def test_build_definitions():
+    try:
+        os.remove("sqlalchemy_models/_definitions.json")
+    except OSError:
+        pass
+    build_definitions()
+    assert os.path.exists("sqlalchemy_models/_definitions.json")
+    assert os.path.exists("sqlalchemy_models/definitions.json")
