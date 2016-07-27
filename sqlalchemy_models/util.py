@@ -68,5 +68,12 @@ def build_definitions(dpath="sqlalchemy_models/_definitions.json"):
     newdef.write(json.dumps(definitions, indent=2))
     newdef.close()
 
+
+def filter_query_by_attr(query, model, attrname, attr):
+    if attr is not None:
+        query = query.filter(getattr(model, attrname) == attr)
+    return query
+
+
 if __name__ == "__main__":
     build_definitions()

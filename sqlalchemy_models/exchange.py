@@ -1,6 +1,9 @@
 """
 SQLAlchemy models for Exchanges
 """
+import random
+import string
+
 from __init__ import sa, orm, Base, LedgerAmount
 from ledger import Amount
 import datetime
@@ -18,21 +21,33 @@ class LimitOrder(Base):
     side = sa.Column(sa.Enum("bid", "ask"), nullable=False)
     exchange = sa.Column(sa.String(12), nullable=False)
     order_id = sa.Column(sa.String(80), unique=True, nullable=False)
-    state = sa.Column(sa.Enum('pending', 'open', 'closed', 'canceled'))
+    state = sa.Column(sa.Enum('pending', 'open', 'closed'))
 
-    def __init__(self, price, amount, market, side, exchange, order_id, create_time=datetime.datetime.utcnow(),
+    def __init__(self, price, amount, market, side, exchange, order_id=None, create_time=datetime.datetime.utcnow(),
                  change_time=datetime.datetime.utcnow(), exec_amount=0, state='pending'):
         self.price = price
         self.amount = amount
         self.market = market
         self.side = side
         self.exchange = exchange
-        self.order_id = "%s|%s" % (exchange, order_id)  # to ensure uniqueness
+        if order_id is None:
+            self.order_id = "tmp|%s" % ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(15))
+        elif "|" not in str(order_id):
+            self.order_id = "%s|%s" % (exchange, order_id)  # to ensure uniqueness
+        else:
+            self.order_id = order_id
         self.create_time = create_time
         self.change_time = change_time
         self.exec_amount = exec_amount
         self.state = state
         self.load_commodities()
+
+    def __repr__(self):
+        return "<LimitOrder(price=%s, amount=%s, exec_amount=%s, market='%s', side='%s', exchange='%s', order_id='%s', " \
+               "state='%s', create_time=%s)>" % (
+                    self.price, self.amount, self.exec_amount,
+                    self.market, self.side, self.exchange,
+                    self.order_id, self.state, self.create_time.strftime('%Y/%m/%d %H:%M:%S'))
 
     @orm.reconstructor
     def load_commodities(self):
@@ -127,7 +142,7 @@ class Trade(Base):
     time = sa.Column(sa.DateTime(), nullable=False)
 
     def __init__(self, trade_id, exchange, market, side, amount, price, fee,
-                 fee_side, time):
+                 fee_side, time=None):
         self.trade_id = "%s|%s" % (exchange, trade_id)  # to ensure uniqueness
         self.exchange = exchange
         self.market = market
@@ -136,7 +151,7 @@ class Trade(Base):
         self.price = price
         self.fee = fee
         self.fee_side = fee_side
-        self.time = time
+        self.time = time if time is not None else datetime.datetime.utcnow()
         self.load_commodities()
 
     # noinspection PyPep8

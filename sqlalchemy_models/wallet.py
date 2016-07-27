@@ -31,6 +31,11 @@ class Balance(Base):
         self.user_id = user_id
         self.load_commodities()
 
+    def __repr__(self):
+        return "<Balance(total=%s, available=%s, currency='%s', reference='%s', user_id=%s, time=%s)>" % (
+                   self.total, self.currency, self.currency,
+                   self.reference, self.user_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+
     @orm.reconstructor
     def load_commodities(self):
         """
