@@ -54,14 +54,16 @@ def test_setup_db_model():
 
 class TestSetupLogger(unittest.TestCase):
     def setUp(self):
-        self.uri = "sqlite:////tmp/test.db"
+        self.uri = "postgresql://postgres:Ko7U8UgTx5vNT4EXo9Kl@localhost/sla"
         self.ses, self.eng = create_session_engine(uri=self.uri)
+        setup_database(self.eng, modules=[um, em, wm])
 
     def tearDown(self):
-        try:
-            os.remove(self.uri)
-        except OSError:
-            pass
+        self.ses.close()
+    #     try:
+    #         os.remove(self.uri)
+    #     except OSError:
+    #         pass
 
     def test_User(self):
         address = ''.join([random.choice(string.ascii_letters) for n in xrange(19)])
@@ -108,9 +110,10 @@ class TestSetupLogger(unittest.TestCase):
         trade = em.Trade(tid, 'testx', 'BTC_USD', 'sell',
                          Amount("%s BTC" % 1.1), Amount("%s USD" % 770),
                          Amount("%s USD" % 1), 'quote', datetime.datetime.utcnow())
+        print trade
         self.ses.add(trade)
         self.ses.commit()
-        self.ses.close()
+        trade.load_commodities()
         dbtrade = self.ses.query(em.Trade).filter(em.Trade.trade_id == "testx|%s" % tid).one()
         assert dbtrade is not None
         assert isinstance(dbtrade.price, Amount)
@@ -127,7 +130,7 @@ class TestSetupLogger(unittest.TestCase):
                            'BTC_USD', 'testx')
         self.ses.add(ticker)
         self.ses.commit()
-        self.ses.close()
+        ticker.load_commodities()
         dbtick = self.ses.query(em.Ticker).order_by(em.Ticker.time.desc()).first()
         assert dbtick is not None
         assert isinstance(dbtick.bid, Amount)
@@ -142,11 +145,11 @@ class TestSetupLogger(unittest.TestCase):
 
     def test_load_limit_order(self):
         oid = ''.join([random.choice(string.ascii_letters) for letter in xrange(19)])
-        order = em.LimitOrder(Amount("%s USD" % 770), Amount("%s BTC" % 1.1),
+        order = em.LimitOrder(Amount("{0:.8f} USD".format(770)), Amount("{0:.8f} BTC".format(1.1)),
                               'BTC_USD', 'ask', 'testx', oid)
         self.ses.add(order)
         self.ses.commit()
-        self.ses.close()
+        order.load_commodities()
         dbo = self.ses.query(em.LimitOrder).order_by(em.LimitOrder.create_time.desc()).first()
         assert dbo is not None
         assert isinstance(dbo.price, Amount)
@@ -161,17 +164,18 @@ class TestSetupLogger(unittest.TestCase):
         self.ses.add(u)
         self.ses.commit()
         ref = ''.join([random.choice(string.ascii_letters) for letter in xrange(9)])
-        bal = wm.Balance(Amount("%s BTC" % 1.1), Amount("%s BTC" % 1.01),
+        bal = wm.Balance(Amount("{0:.8f} BTC".format(1.1)), Amount("{0:.8f} BTC".format(1.01)),
                          'BTC', ref, u.id)
         self.ses.add(bal)
-        bal2 = wm.Balance(Amount("%s USD" % 100), Amount("%s BTC" % 100),
+        bal2 = wm.Balance(Amount("{0:.8f} USD".format(100)), Amount("{0:.8f} BTC".format(100)),
                           'USD', ref, u.id)
         self.ses.add(bal2)
-
         self.ses.commit()
+        bal.load_commodities()
+        bal2.load_commodities()
         bid = bal.id
         bid2 = bal2.id
-        self.ses.close()
+        #self.ses.close()
         dbb = self.ses.query(wm.Balance).filter(wm.Balance.id == bid).first()
         assert dbb is not None
         assert isinstance(dbb.available, Amount)
@@ -184,8 +188,9 @@ class TestSetupLogger(unittest.TestCase):
         dbb.total = dbb.total + amount
         self.ses.add(dbb)
         self.ses.commit()
-
+        dbb.load_commodities()
         dbb2 = self.ses.query(wm.Balance).filter(wm.Balance.id == bid2).first()
+        dbb2.load_commodities()
         assert dbb2 is not None
         assert isinstance(dbb2.available, Amount)
         assert isinstance(dbb2.total, Amount)

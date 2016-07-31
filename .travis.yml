@@ -5,6 +5,9 @@ python:
 
 sudo: false
 
+services:
+  - postgresql
+
 addons:
   apt:
     packages:
@@ -43,6 +46,9 @@ before_install:
 
 install:
   - python setup.py -q install
+
+before_script:
+  - psql -c 'create database sla;' -U postgres
 
 script:
   - python setup.py pytest --addopts --cov=sqlalchemy_models

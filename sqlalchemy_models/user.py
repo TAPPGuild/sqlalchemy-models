@@ -7,8 +7,8 @@ from sqlalchemy.ext.declarative import declared_attr
 
 from __init__ import sa, orm, Base
 
-__all__ = ['User', 'UserKey', 'IntUserSetting',
-           'StrUserSetting', 'DateTimeUserSetting', 'Setting', 'KeyPermission']
+__all__ = ['User', 'UserKey']  # , 'IntUserSetting',
+# 'StrUserSetting', 'DateTimeUserSetting', 'Setting', 'KeyPermission']
 
 
 class User(Base):
@@ -35,7 +35,7 @@ class UserKey(Base):
     createtime = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
     deactivated_at = sa.Column(sa.DateTime(), nullable=True)
     permissionbits = sa.Column(sa.BigInteger, nullable=True)
-    keytype = sa.Column(sa.Enum("public", "tfa"), nullable=False)
+    keytype = sa.Column(sa.Enum("public", "tfa", name='keytype'), nullable=False)
     last_nonce = sa.Column(sa.Integer, nullable=False, default=0)
     # algorithm sa.Column?
 
@@ -80,8 +80,10 @@ class UserSetting(object):
 
     @declared_attr
     def setting_name(self):
-        return sa.Column(sa.Integer, sa.ForeignKey("setting.name"),
-                         nullable=False, name='setting_name')
+        return sa.Column(sa.Integer, sa.ForeignKey("setting.id"),
+                         nullable=False, name='setting_id')
+        #return sa.Column(sa.String(80), sa.ForeignKey("setting.name"),
+        #                 nullable=False, name='setting_name')
         # setting = orm.relationship("Setting", foreign_keys=[setting_name])
 
 
@@ -124,9 +126,9 @@ class DateTimeUserSetting(Base, UserSetting):
 class Setting(Base):
     """A Setting"""
 
-    name = sa.Column(sa.String(80), primary_key=True)
+    name = sa.Column(sa.String(80))
     description = sa.Column(sa.String(320))
-    value_type = sa.Column(sa.Enum("str", "int", "date-time"))
+    value_type = sa.Column(sa.Enum("str", "int", "date-time", name='value_type'))
 
     def __repr__(self):
         return "<Setting(id=%s, name='%s')>" % (

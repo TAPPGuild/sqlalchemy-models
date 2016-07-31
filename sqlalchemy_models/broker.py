@@ -10,15 +10,14 @@ class QuoteRequest(Base):
     """A Request for a quote to convert one currency to another."""
     __tablename__ = "quote_request"
     __name__ = "quote_request"
-
-    id = sa.Column(sa.Integer, primary_key=True, doc="primary key")
-    asset_specified = sa.Column(sa.Enum("in", "out"))
+    id = sa.Column(sa.Integer, sa.Sequence('quote_request_id_seq'), primary_key=True)
+    asset_specified = sa.Column(sa.Enum("in", "out", name='asset_specified'))
     in_amount = sa.Column(LedgerAmount, nullable=False)
     out_amount = sa.Column(LedgerAmount, nullable=False)
     fixed_rate = sa.Column(sa.Boolean, nullable=False)
 
-    out_address = sa.Column(sa.String, nullable=False)
-    return_address = sa.Column(sa.String, nullable=False)
+    out_address = sa.Column(sa.String(80), nullable=False)
+    return_address = sa.Column(sa.String(80), nullable=False)
 
     in_currency = sa.Column(sa.String(4), nullable=False)
     out_currency = sa.Column(sa.String(4), nullable=False)
@@ -44,13 +43,12 @@ class Quote(Base):
     """A Quote to convert one currency to another."""
     __tablename__ = "quote"
     __name__ = "quote"
-
-    id = sa.Column(sa.Integer, primary_key=True, doc="primary key")
+    id = sa.Column(sa.Integer, sa.Sequence('quote_id_seq'), primary_key=True)
     in_amount = sa.Column(LedgerAmount, nullable=False)
     out_amount = sa.Column(LedgerAmount, nullable=False)
-    in_address = sa.Column(sa.String, nullable=False)
-    out_address = sa.Column(sa.String, nullable=False)
-    return_address = sa.Column(sa.String, nullable=False)
+    in_address = sa.Column(sa.String(80), nullable=False)
+    out_address = sa.Column(sa.String(80), nullable=False)
+    return_address = sa.Column(sa.String(80), nullable=False)
     in_currency = sa.Column(sa.String(4), nullable=False)
     out_currency = sa.Column(sa.String(4), nullable=False)
     rate = sa.Column(LedgerAmount, nullable=False)
@@ -72,10 +70,9 @@ class Payment(Base):
     """A Payment, reflecting that money was sent out."""
     __tablename__ = "payment"
     __name__ = "payment"
-
-    id = sa.Column(sa.Integer, primary_key=True, doc="primary key")
+    id = sa.Column(sa.Integer, sa.Sequence('payment_id_seq'), primary_key=True)
     out_amount = sa.Column(LedgerAmount, nullable=False)
-    out_address = sa.Column(sa.String, nullable=False)
+    out_address = sa.Column(sa.String(80), nullable=False)
     out_currency = sa.Column(sa.String(4), nullable=False)
     debit_id = sa.Column(sa.Integer, nullable=True)
 

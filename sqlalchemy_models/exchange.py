@@ -12,16 +12,17 @@ __all__ = ['LimitOrder', 'Ticker', 'Trade']
 
 
 class LimitOrder(Base):
+    id = sa.Column(sa.Integer, sa.Sequence('limit_order_id_seq'), primary_key=True)
     create_time = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
     change_time = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
     price = sa.Column(LedgerAmount, nullable=False)
     amount = sa.Column(LedgerAmount, nullable=False)
     exec_amount = sa.Column(LedgerAmount, nullable=False)
     market = sa.Column(sa.String(9), nullable=False)
-    side = sa.Column(sa.Enum("bid", "ask"), nullable=False)
+    side = sa.Column(sa.Enum("bid", "ask", name='order_side'), nullable=False)
     exchange = sa.Column(sa.String(12), nullable=False)
     order_id = sa.Column(sa.String(80), unique=True, nullable=False)
-    state = sa.Column(sa.Enum('pending', 'open', 'closed'))
+    state = sa.Column(sa.Enum('pending', 'open', 'closed', name='state'))
 
     def __init__(self, price, amount, market, side, exchange, order_id=None, create_time=datetime.datetime.utcnow(),
                  change_time=datetime.datetime.utcnow(), exec_amount=0, state='pending'):
@@ -70,6 +71,7 @@ class LimitOrder(Base):
 
 
 class Ticker(Base):
+    id = sa.Column(sa.Integer, sa.Sequence('ticker_id_seq'),  primary_key=True)
     time = sa.Column(sa.DateTime(), default=datetime.datetime.utcnow)
     bid = sa.Column(LedgerAmount, nullable=False)
     ask = sa.Column(LedgerAmount, nullable=False)
@@ -131,14 +133,15 @@ class Ticker(Base):
 
 
 class Trade(Base):
+    id = sa.Column(sa.Integer, sa.Sequence('trade_id_seq'), primary_key=True)
     trade_id = sa.Column(sa.String(80), unique=True, nullable=False)
     exchange = sa.Column(sa.String(12), nullable=False)
     market = sa.Column(sa.String(9), nullable=False)
-    side = sa.Column(sa.Enum("buy", "sell"), nullable=False)
+    trade_side = sa.Column(sa.Enum('buy', 'sell', name='trade_side'), nullable=False)
     amount = sa.Column(LedgerAmount, nullable=False)
     price = sa.Column(LedgerAmount, nullable=False)
     fee = sa.Column(LedgerAmount, nullable=False)
-    fee_side = sa.Column(sa.String(4), nullable=False)
+    fee_side = sa.Column(sa.String(5), nullable=False)
     time = sa.Column(sa.DateTime(), nullable=False)
 
     def __init__(self, trade_id, exchange, market, side, amount, price, fee,
@@ -146,7 +149,7 @@ class Trade(Base):
         self.trade_id = "%s|%s" % (exchange, trade_id)  # to ensure uniqueness
         self.exchange = exchange
         self.market = market
-        self.side = side
+        self.trade_side = side
         self.amount = amount
         self.price = price
         self.fee = fee
@@ -158,7 +161,7 @@ class Trade(Base):
     def __repr__(self):
         return "<Trade(trade_id='%s', side='%s', amount=%s, price=%s, fee=%s, fee_side='%s', market='%s', " \
                "exchange='%s', time=%s)>" % (
-                   self.trade_id, self.side, self.amount,
+                   self.trade_id, self.trade_side, self.amount,
                    self.price, self.fee, self.fee_side,
                    self.market, self.exchange, self.time.strftime('%Y/%m/%d %H:%M:%S'))
 
@@ -190,7 +193,7 @@ class Trade(Base):
         ledger += "P %s %s %s\n" % (date, base, self.price)
         q_price = Amount("%s %s" % (self.price.quantity_string(), base)).inverted()
         ledger += "P %s %s %s\n" % (date, quote, q_price)
-        ledger += "%s %s %s %s\n" % (date, self.exchange, self.market, self.side)
+        ledger += "%s %s %s %s\n" % (date, self.exchange, self.market, self.trade_side)
         ledger += "    ;%s\n" % repr(self)
 
         feeline = "\n"
@@ -198,7 +201,7 @@ class Trade(Base):
             feeline = "    Expenses:TradeFee    {0} @ ".format(self.fee)
             if self.fee_side == 'base':
                 feeline += "{0}\n".format(self.price)
-                if self.side == 'sell':
+                if self.trade_side == 'sell':
                     b_vol = self.amount - self.fee
                     b_mine = -self.amount
                     q_vol = -Amount(
@@ -213,7 +216,7 @@ class Trade(Base):
                     q_mine = -q_vol
             else:
                 feeline += "{0}\n".format(q_price)
-                if self.side == 'sell':
+                if self.trade_side == 'sell':
                     b_vol = self.amount
                     b_mine = -self.amount
                     print "{0:.8} {1}".format(self.price * self.amount.number(), quote)
@@ -227,7 +230,7 @@ class Trade(Base):
                         "{0:.8} {1}".format(self.price * self.amount.number(), quote))
                     q_mine = -q_vol - self.fee
         else:
-            if self.side == 'sell':
+            if self.trade_side == 'sell':
                 b_vol = self.amount
                 b_mine = -self.amount
                 q_vol = -self.price * self.amount.number()
@@ -239,8 +242,8 @@ class Trade(Base):
                 q_mine = -q_vol
 
         ledger += "    Assets:{0}:{1}    {2} @ {3}\n".format(self.exchange, quote, q_mine, q_price)
-        ledger += "    FX:{0}:{1}   {2} @ {3}\n".format(self.market, self.side, q_vol, q_price)
+        ledger += "    FX:{0}:{1}   {2} @ {3}\n".format(self.market, self.trade_side, q_vol, q_price)
         ledger += "    Assets:{0}:{1}    {2} @ {3}\n".format(self.exchange, base, b_mine, self.price)
-        ledger += "    FX:{0}:{1}   {2} @ {3}\n".format(self.market, self.side, b_vol, self.price)
+        ledger += "    FX:{0}:{1}   {2} @ {3}\n".format(self.market, self.trade_side, b_vol, self.price)
         ledger += feeline
         return ledger
