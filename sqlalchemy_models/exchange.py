@@ -1,8 +1,12 @@
 """
 SQLAlchemy models for Exchanges
 """
+import json
 import random
 import string
+
+import isodate
+from alchemyjsonschema.dictify import datetime_rfc3339
 
 from __init__ import sa, orm, Base, LedgerAmount
 from ledger import Amount
@@ -24,8 +28,8 @@ class LimitOrder(Base):
     order_id = sa.Column(sa.String(80), unique=True, nullable=False)
     state = sa.Column(sa.Enum('pending', 'open', 'closed', name='state'))
 
-    def __init__(self, price, amount, market, side, exchange, order_id=None, create_time=datetime.datetime.utcnow(),
-                 change_time=datetime.datetime.utcnow(), exec_amount=0, state='pending'):
+    def __init__(self, price, amount, market, side, exchange, order_id=None, create_time=None,
+                 change_time=None, exec_amount=0, state='pending'):
         self.price = price
         self.amount = amount
         self.market = market
@@ -37,8 +41,8 @@ class LimitOrder(Base):
             self.order_id = "%s|%s" % (exchange, order_id)  # to ensure uniqueness
         else:
             self.order_id = order_id
-        self.create_time = create_time
-        self.change_time = change_time
+        self.create_time = create_time if create_time is not None else datetime.datetime.utcnow()
+        self.change_time = change_time if change_time is not None else datetime.datetime.utcnow()
         self.exec_amount = exec_amount
         self.state = state
         self.load_commodities()
@@ -48,7 +52,7 @@ class LimitOrder(Base):
                "state='%s', create_time=%s)>" % (
                     self.price, self.amount, self.exec_amount,
                     self.market, self.side, self.exchange,
-                    self.order_id, self.state, self.create_time.strftime('%Y/%m/%d %H:%M:%S'))
+                    self.order_id, self.state, datetime_rfc3339(self.create_time))
 
     @orm.reconstructor
     def load_commodities(self):
@@ -98,7 +102,7 @@ class Ticker(Base):
         return "<Ticker(bid=%s, ask=%s, high=%s, low=%s, volume=%s, last=%s, market='%s', exchange='%s', time=%s)>" % (
             self.bid, self.ask, self.high,
             self.low, self.volume, self.last,
-            self.market, self.exchange, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+            self.market, self.exchange, datetime_rfc3339(self.time))
 
     @orm.reconstructor
     def load_commodities(self):
@@ -130,6 +134,21 @@ class Ticker(Base):
             self.last = Amount("{0:.8f} {1}".format(self.last.to_double(), quote))
         else:
             self.last = Amount("{0:.8f} {1}".format(self.last, quote))
+
+    def calculate_index(self):
+        """
+        only an estimator... very rough
+        """
+        return (self.bid + self.ask + self.last) / 3
+
+    @classmethod
+    def from_dict(cls, dticker):
+        dticker['time'] = isodate.parse_datetime(dticker['time']).replace(tzinfo=None)
+        return cls(**dticker)
+
+    @classmethod
+    def from_json(cls, jticker):
+        return cls.from_dict(json.loads(jticker))
 
 
 class Trade(Base):
@@ -163,7 +182,7 @@ class Trade(Base):
                "exchange='%s', time=%s)>" % (
                    self.trade_id, self.trade_side, self.amount,
                    self.price, self.fee, self.fee_side,
-                   self.market, self.exchange, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+                   self.market, self.exchange, datetime_rfc3339(self.time))
 
     @orm.reconstructor
     def load_commodities(self):
@@ -219,7 +238,6 @@ class Trade(Base):
                 if self.trade_side == 'sell':
                     b_vol = self.amount
                     b_mine = -self.amount
-                    print "{0:.8} {1}".format(self.price * self.amount.number(), quote)
                     q_vol = -Amount(
                         "{0:.8} {1}".format(self.price * self.amount.number(), quote))
                     q_mine = -q_vol - self.fee

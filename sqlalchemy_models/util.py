@@ -1,7 +1,11 @@
 import json
 
 import alchemyjsonschema
+import time
 from alchemyjsonschema import command
+from ledger import Balance
+
+from ledger import Amount
 
 import broker as bm
 import exchange as em
@@ -73,6 +77,26 @@ def filter_query_by_attr(query, model, attrname, attr):
     if attr is not None:
         query = query.filter(getattr(model, attrname) == attr)
     return query
+
+
+def multiply_tickers(t1, t2):
+    """
+    Multiply two tickers. Quote currency of t1 must match base currency of t2.
+
+    :param Ticker t1: Ticker # 1
+    :param Ticker t2: Ticker # 2
+    """
+    t1pair = t1.market.split("_")
+    t2pair = t2.market.split("_")
+    assert t1pair[1] == t2pair[0]
+    market = t1pair[0] + "_" + t2pair[1]
+    bid = t1.bid * Amount("%s %s" % (t2.bid.number(), t1.bid.commodity))
+    ask = t1.ask * Amount("%s %s" % (t2.ask.number(), t1.ask.commodity))
+    high = t1.high * Amount("%s %s" % (t2.high.number(), t1.high.commodity))  # meaningless
+    low = t1.low * Amount("%s %s" % (t2.low.number(), t1.low.commodity))  # meaningless
+    volume = 0  # meaningless
+    last = t1.last * Amount("%s %s" % (t2.last.number(), t1.last.commodity))
+    return em.Ticker(bid=bid, ask=ask, high=high, low=low, volume=volume, last=last, market=market, exchange='multiple')
 
 
 if __name__ == "__main__":

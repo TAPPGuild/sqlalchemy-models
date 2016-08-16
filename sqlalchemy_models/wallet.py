@@ -1,6 +1,8 @@
 """
 SQLAlchemy models for Wallets
 """
+from alchemyjsonschema.dictify import datetime_rfc3339
+
 from __init__ import sa, orm, Base, LedgerAmount
 from ledger import Amount
 import datetime
@@ -24,18 +26,19 @@ class Balance(Base):
         nullable=False)
     user = orm.relationship("User", foreign_keys=[user_id])
 
-    def __init__(self, total, available, currency, reference, user_id):
+    def __init__(self, total, available, currency, reference, user_id, time=None):
         self.total = total
         self.available = available
         self.currency = currency
         self.reference = reference
         self.user_id = user_id
+        self.time = time if time is not None else datetime.datetime.utcnow()
         self.load_commodities()
 
     def __repr__(self):
         return "<Balance(total=%s, available=%s, currency='%s', reference='%s', user_id=%s, time=%s)>" % (
-                   self.total, self.currency, self.currency,
-                   self.reference, self.user_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+                   self.total, self.available, self.currency,
+                   self.reference, self.user_id, datetime_rfc3339(self.time))
 
     @orm.reconstructor
     def load_commodities(self):
@@ -55,11 +58,11 @@ class Balance(Base):
 class Address(Base):
     """A payment network Address or account number."""
     id = sa.Column(sa.Integer, sa.Sequence('address_id_seq'), primary_key=True)
-    address = sa.Column(sa.String(64),
-                        nullable=False)  # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r, 	XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
+    # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r, 	XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
+    address = sa.Column(sa.String(64), nullable=False)
     currency = sa.Column(sa.String(4), nullable=False)  # i.e. BTC, DASH, USD
     network = sa.Column(sa.String(64), nullable=False)  # i.e. Bitcoin, Dash, Crypto Capital
-    state = sa.Column(sa.Enum("pending", "active", "blocked", name='state'), nullable=False)
+    address_state = sa.Column(sa.Enum("pending", "active", "blocked", name='address_state'), nullable=False)
 
     # foreign key reference to the owner of this
     user_id = sa.Column(
@@ -72,7 +75,7 @@ class Address(Base):
         self.address = address
         self.currency = currency
         self.network = network
-        self.state = state
+        self.address_state = state
         self.user_id = user_id
 
 
@@ -84,7 +87,7 @@ class Credit(Base):
                         nullable=False)  # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r, XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
     currency = sa.Column(sa.String(4), nullable=False)  # i.e. BTC, DASH, USD
     network = sa.Column(sa.String(64), nullable=False)  # i.e. Bitcoin, Dash, Crypto Capital
-    state = sa.Column(sa.Enum("unconfirmed", "complete", "error", "canceled", name='state'), nullable=False)
+    transaction_state = sa.Column(sa.Enum("unconfirmed", "complete", "error", "canceled", name='transaction_state'), nullable=False)
     reference = sa.Column(sa.String(256), nullable=True)  # i.e. invoice#1
     ref_id = sa.Column(sa.String(256), nullable=False,
                        unique=True)  # i.e. 4cef42f9ff334b9b11bffbd9da21da54176103d92c1c6e4442cbe28ca43540fd:0
@@ -102,18 +105,19 @@ class Credit(Base):
         self.address = address
         self.currency = currency
         self.network = network
-        self.state = state
+        self.transaction_state = state
         self.reference = reference
         self.ref_id = ref_id
         self.user_id = user_id
-        self.time = time
+        # self.time = pytz.utc.localize(time)
+        self.time = time.replace(tzinfo=None)
         self.load_commodities()
 
     def __repr__(self):
         return "<Credit(amount=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', " \
                "ref_id='%s', time=%s)>" % (
                    self.amount, self.address, self.currency, self.network,
-                   self.state, self.reference, self.ref_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+                   self.transaction_state, self.reference, self.ref_id, datetime_rfc3339(self.time))
 
     def get_ledger_entry(self):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
@@ -139,11 +143,10 @@ class Debit(Base):
     id = sa.Column(sa.Integer, sa.Sequence('debit_id_seq'), primary_key=True)
     amount = sa.Column(LedgerAmount, nullable=False)
     fee = sa.Column(LedgerAmount, nullable=False)
-    address = sa.Column(sa.String(64),
-                        nullable=False)  # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r,  XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
+    address = sa.Column(sa.String(64), nullable=False)  # i.e. 1PkzTWAyfR9yoFw2jptKQ3g6E5nKXPsy8r,  XhwWxABXPVG5Z3ePyLVA3VixPRkARK6FKy
     currency = sa.Column(sa.String(4), nullable=False)  # i.e. BTC, DASH, USDT
     network = sa.Column(sa.String(64), nullable=False)  # i.e. Bitcoin, Dash, Crypto Capital
-    state = sa.Column(sa.Enum("unconfirmed", "complete", "error", "canceled", name='state'), nullable=False)
+    transaction_state = sa.Column(sa.Enum("unconfirmed", "complete", "error", "canceled", name='transaction_state'), nullable=False)
     reference = sa.Column(sa.String(256), nullable=True)  # i.e. invoice#1
     ref_id = sa.Column(sa.String(256),
                        nullable=False)  # i.e. 4cef42f9ff334b9b11bffbd9da21da54176103d92c1c6e4442cbe28ca43540fd
@@ -162,19 +165,20 @@ class Debit(Base):
         self.address = address
         self.currency = currency
         self.network = network
-        self.state = state
+        self.transaction_state = state
         self.reference = reference
         self.ref_id = ref_id
         self.user_id = user_id
-        self.time = time
+        # self.time = pytz.utc.localize(time)
+        self.time = time.replace(tzinfo=None)
         self.load_commodities()
 
     def __repr__(self):
         return "<Debit(amount=%s, fee=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', " \
                "ref_id='%s', time=%s)>" % (
                    self.amount, self.fee, self.address,
-                   self.currency, self.network, self.state,
-                   self.reference, self.ref_id, self.time.strftime('%Y/%m/%d %H:%M:%S'))
+                   self.currency, self.network, self.transaction_state,
+                   self.reference, self.ref_id, datetime_rfc3339(self.time))
 
     def get_ledger_entry(self):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
