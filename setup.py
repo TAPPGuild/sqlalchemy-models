@@ -19,6 +19,9 @@ setup(
     package_dir={'sqlalchemy_models': 'sqlalchemy_models'},
     package_data={'sqlalchemy_models': ['definitions.json']},
     setup_requires=['pytest-runner'],
-    install_requires=['sqlalchemy>=1.0.9'],
+    install_requires=['sqlalchemy>=1.0.9',
+                      'psycopg2',
+                      'jsonschema',
+                      'alchemyjsonschema'],
     tests_require=['pytest', 'pytest-cov']
 )
