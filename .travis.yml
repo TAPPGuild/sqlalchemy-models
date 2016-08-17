@@ -1,0 +1,57 @@
+language: python
+python:
+  - "2.7"
+  - "3.3"
+
+sudo: false
+
+services:
+  - postgresql
+
+addons:
+  apt:
+    packages:
+      - git
+      - build-essential
+      - doxygen
+      - cmake
+      - ninja-build
+      - zlib1g-dev 
+      - libbz2-dev
+      - python-dev
+      - libgmp3-dev
+      - libmpfr-dev
+      - gettext
+      - libedit-dev
+      - texinfo
+      - lcov
+      - libutfcpp-dev
+      - sloccount
+      - libboost-dev
+      - libboost-date-time-dev
+      - libboost-filesystem-dev
+      - libboost-iostreams-dev
+      - libboost-python-dev
+      - libboost-regex-dev
+      - libboost-system-dev
+      - libboost-test-dev
+
+before_install:
+  - git clone git://github.com/ledger/ledger.git
+  - pushd ledger
+  - ./acprep --python update
+  - popd
+  - pip install -U coveralls
+  - export PYTHONPATH=$PYTHONPATH:$(readlink -f ./ledger) 
+
+install:
+  - python setup.py -q install
+
+before_script:
+  - psql -c 'create database sla;' -U postgres
+
+script:
+  - python setup.py pytest --addopts --cov=sqlalchemy_models
+
+after_success:
+  - coveralls

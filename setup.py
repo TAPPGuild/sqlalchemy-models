@@ -7,16 +7,18 @@ classifiers = [
 ]
 
 setup(
-    name='sqlalchemy-login-models',
-    version='0.0.5',
-    description=' Generic user and login capabilities for an application using SQLAlchemy.',
-    author='deginner',
-    author_email='support@deginner.com',
-    url='https://github.com/deginner/sqlalchemy-login-models',
+    name='sqlalchemy-models',
+    version='0.0.5.9.1',
+    description=' Generic data models for an application using SQLAlchemy.',
+    author='Git Guild',
+    author_email='support@gitguild.com',
+    url='https://github.com/gitguild/sqlalchemy-models',
     license='MIT',
     classifiers=classifiers,
-    include_package_data=True,
-    packages=['sqlalchemy_login_models'],
+    packages=['sqlalchemy_models'],
+    package_dir={'sqlalchemy_models': 'sqlalchemy_models'},
+    package_data={'sqlalchemy_models': ['definitions.json']},
     setup_requires=['pytest-runner'],
+    install_requires=['sqlalchemy>=1.0.9'],
     tests_require=['pytest', 'pytest-cov']
 )

@@ -61,3 +61,6 @@ target/
 
 # built json files
 *.json
+
+#pycharm
+.idea
