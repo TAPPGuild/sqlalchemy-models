@@ -54,7 +54,7 @@ def build_definitions(dpath="sqlalchemy_models/_definitions.json"):
 
     :param str dpath: The path of the definitions file to create as part of the build process.
     """
-    command.run(alchemyjsonschema.AlsoChildrenWalker, module=todo, outdir="sqlalchemy_models",# definitions=dpath,
+    command.run(alchemyjsonschema.AlsoChildrenWalker, module=todo, outdir="sqlalchemy_models", definition_name="_definitions.json",
                 relation_decision=alchemyjsonschema.RelationDesicion())
     pass  # skip due to unpatched issue in alchemyjsonschema run()
     definitions = ""
