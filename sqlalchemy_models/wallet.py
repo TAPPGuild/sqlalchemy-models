@@ -122,7 +122,7 @@ class Credit(Base):
     def get_ledger_entry(self):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
         ledger = "%s %s %s %s\n" % (date, self.reference, 'credit', self.currency)
-        ledger += "    Assets:{0}:{1}:credit    {2}\n".format(self.reference, self.currency, self.amount)
+        ledger += "    Assets:{0}:{1}:credit    {2}\n".format(self.network, self.currency, self.amount)
         ledger += "    Equity:Wallet:{0}:debit   {1}\n".format(self.currency, -self.amount)
         ledger += "\n"
         return ledger

@@ -209,7 +209,7 @@ class TestSetupLogger(unittest.TestCase):
 
         le = credit.get_ledger_entry()
         ex = """2016/07/10 04:56:21 helper credit BTC
-    Assets:helper:BTC:credit    1.10000000 BTC
+    Assets:Bitcoin:BTC:credit    1.10000000 BTC
     Equity:Wallet:BTC:debit   -1.10000000 BTC
 
 """
@@ -226,7 +226,7 @@ class TestSetupLogger(unittest.TestCase):
 
         le = debit.get_ledger_entry()
         ex = """2016/07/10 04:56:21 helper debit BTC
-    Assets:helper:BTC:debit    -1.10000000 BTC
+    Assets:Bitcoin:BTC:debit    -1.10000000 BTC
     Equity:Wallet:BTC:credit   1.09990000 BTC
     Expenses:MinerFee   0.00010000 BTC
 

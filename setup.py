@@ -8,7 +8,7 @@ classifiers = [
 
 setup(
     name='sqlalchemy-models',
-    version='0.0.5.9.1',
+    version='0.0.5.9.2',
     description=' Generic data models for an application using SQLAlchemy.',
     author='Git Guild',
     author_email='support@gitguild.com',
