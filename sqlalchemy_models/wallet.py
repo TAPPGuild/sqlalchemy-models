@@ -100,12 +100,12 @@ class Credit(Base):
         nullable=False)
     user = orm.relationship("User", foreign_keys=[user_id])
 
-    def __init__(self, amount, address, currency, network, state, reference, ref_id, user_id, time):
+    def __init__(self, amount, address, currency, network, transaction_state, reference, ref_id, user_id, time):
         self.amount = amount
         self.address = address
         self.currency = currency
         self.network = network
-        self.transaction_state = state
+        self.transaction_state = transaction_state
         self.reference = reference
         self.ref_id = ref_id
         self.user_id = user_id
@@ -114,7 +114,7 @@ class Credit(Base):
         self.load_commodities()
 
     def __repr__(self):
-        return "<Credit(amount=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', " \
+        return "<Credit(amount=%s, address='%s', currency='%s', network='%s', transaction_state='%s', reference='%s', " \
                "ref_id='%s', time=%s)>" % (
                    self.amount, self.address, self.currency, self.network,
                    self.transaction_state, self.reference, self.ref_id, datetime_rfc3339(self.time))
@@ -159,13 +159,13 @@ class Debit(Base):
         nullable=False)
     user = orm.relationship("User", foreign_keys=[user_id])
 
-    def __init__(self, amount, fee, address, currency, network, state, reference, ref_id, user_id, time):
+    def __init__(self, amount, fee, address, currency, network, transaction_state, reference, ref_id, user_id, time):
         self.amount = abs(amount)
         self.fee = abs(fee)
         self.address = address
         self.currency = currency
         self.network = network
-        self.transaction_state = state
+        self.transaction_state = transaction_state
         self.reference = reference
         self.ref_id = ref_id
         self.user_id = user_id
@@ -174,7 +174,7 @@ class Debit(Base):
         self.load_commodities()
 
     def __repr__(self):
-        return "<Debit(amount=%s, fee=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', " \
+        return "<Debit(amount=%s, fee=%s, address='%s', currency='%s', network='%s', transaction_state='%s', reference='%s', " \
                "ref_id='%s', time=%s)>" % (
                    self.amount, self.fee, self.address,
                    self.currency, self.network, self.transaction_state,
