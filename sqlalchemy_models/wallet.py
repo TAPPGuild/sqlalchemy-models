@@ -117,7 +117,7 @@ class Credit(Base):
         return "<Credit(amount=%s, address='%s', currency='%s', network='%s', transaction_state='%s', reference='%s', " \
                "ref_id='%s', time=%s)>" % (
                    self.amount, self.address, self.currency, self.network,
-                   self.transaction_state, self.reference, self.ref_id, datetime_rfc3339(self.time))
+                   self.transaction_state, self.network, self.ref_id, datetime_rfc3339(self.time))
 
     def get_ledger_entry(self):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
@@ -184,7 +184,7 @@ class Debit(Base):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
         ledger = "%s %s %s %s\n" % (date, self.reference, 'debit', self.currency)
         assert self.amount > 0
-        ledger += "    Assets:{0}:{1}:debit    {2}\n".format(self.reference, self.currency, -self.amount)
+        ledger += "    Assets:{0}:{1}:debit    {2}\n".format(self.network, self.currency, -self.amount)
         if self.fee > 0:
             ledger += "    Equity:Wallet:{0}:credit   {1}\n".format(self.currency, self.amount - self.fee)
             ledger += "    Expenses:MinerFee   {0}\n".format(self.fee)
