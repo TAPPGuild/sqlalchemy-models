@@ -100,12 +100,12 @@ class Credit(Base):
         nullable=False)
     user = orm.relationship("User", foreign_keys=[user_id])
 
-    def __init__(self, amount, address, currency, network, state, reference, ref_id, user_id, time):
+    def __init__(self, amount, address, currency, network, transaction_state, reference, ref_id, user_id, time):
         self.amount = amount
         self.address = address
         self.currency = currency
         self.network = network
-        self.transaction_state = state
+        self.transaction_state = transaction_state
         self.reference = reference
         self.ref_id = ref_id
         self.user_id = user_id
@@ -114,15 +114,15 @@ class Credit(Base):
         self.load_commodities()
 
     def __repr__(self):
-        return "<Credit(amount=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', " \
+        return "<Credit(amount=%s, address='%s', currency='%s', network='%s', transaction_state='%s', reference='%s', " \
                "ref_id='%s', time=%s)>" % (
                    self.amount, self.address, self.currency, self.network,
-                   self.transaction_state, self.reference, self.ref_id, datetime_rfc3339(self.time))
+                   self.transaction_state, self.network, self.ref_id, datetime_rfc3339(self.time))
 
     def get_ledger_entry(self):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
         ledger = "%s %s %s %s\n" % (date, self.reference, 'credit', self.currency)
-        ledger += "    Assets:{0}:{1}:credit    {2}\n".format(self.reference, self.currency, self.amount)
+        ledger += "    Assets:{0}:{1}:credit    {2}\n".format(self.network, self.currency, self.amount)
         ledger += "    Equity:Wallet:{0}:debit   {1}\n".format(self.currency, -self.amount)
         ledger += "\n"
         return ledger
@@ -159,13 +159,13 @@ class Debit(Base):
         nullable=False)
     user = orm.relationship("User", foreign_keys=[user_id])
 
-    def __init__(self, amount, fee, address, currency, network, state, reference, ref_id, user_id, time):
+    def __init__(self, amount, fee, address, currency, network, transaction_state, reference, ref_id, user_id, time):
         self.amount = abs(amount)
         self.fee = abs(fee)
         self.address = address
         self.currency = currency
         self.network = network
-        self.transaction_state = state
+        self.transaction_state = transaction_state
         self.reference = reference
         self.ref_id = ref_id
         self.user_id = user_id
@@ -174,7 +174,7 @@ class Debit(Base):
         self.load_commodities()
 
     def __repr__(self):
-        return "<Debit(amount=%s, fee=%s, address='%s', currency='%s', network='%s', state='%s', reference='%s', " \
+        return "<Debit(amount=%s, fee=%s, address='%s', currency='%s', network='%s', transaction_state='%s', reference='%s', " \
                "ref_id='%s', time=%s)>" % (
                    self.amount, self.fee, self.address,
                    self.currency, self.network, self.transaction_state,
@@ -184,7 +184,7 @@ class Debit(Base):
         date = self.time.strftime('%Y/%m/%d %H:%M:%S')
         ledger = "%s %s %s %s\n" % (date, self.reference, 'debit', self.currency)
         assert self.amount > 0
-        ledger += "    Assets:{0}:{1}:debit    {2}\n".format(self.reference, self.currency, -self.amount)
+        ledger += "    Assets:{0}:{1}:debit    {2}\n".format(self.network, self.currency, -self.amount)
         if self.fee > 0:
             ledger += "    Equity:Wallet:{0}:credit   {1}\n".format(self.currency, self.amount - self.fee)
             ledger += "    Expenses:MinerFee   {0}\n".format(self.fee)

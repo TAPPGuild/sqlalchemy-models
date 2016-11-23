@@ -8,11 +8,11 @@ classifiers = [
 
 setup(
     name='sqlalchemy-models',
-    version='0.0.5.9.1',
+    version='0.0.6',
     description=' Generic data models for an application using SQLAlchemy.',
     author='Git Guild',
     author_email='support@gitguild.com',
-    url='https://github.com/gitguild/sqlalchemy-models',
+    url='https://github.com/TAPPGuild/sqlalchemy-models',
     license='MIT',
     classifiers=classifiers,
     packages=['sqlalchemy_models'],

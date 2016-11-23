@@ -1,10 +1,6 @@
 import json
 
-import alchemyjsonschema
-import time
-from alchemyjsonschema import command
-from ledger import Balance
-
+from alchemyjsonschema import command, RelationDesicion, AlsoChildrenWalker
 from ledger import Amount
 
 import broker as bm
@@ -54,8 +50,8 @@ def build_definitions(dpath="sqlalchemy_models/_definitions.json"):
 
     :param str dpath: The path of the definitions file to create as part of the build process.
     """
-    command.run(alchemyjsonschema.AlsoChildrenWalker, module=todo, outdir="sqlalchemy_models", definition_name="_definitions.json",
-                relation_decision=alchemyjsonschema.RelationDesicion())
+    command.run(AlsoChildrenWalker, module=todo, outdir="sqlalchemy_models", definition_name="_definitions.json",
+                relation_decision=RelationDesicion())
     pass  # skip due to unpatched issue in alchemyjsonschema run()
     definitions = ""
     for line in open(dpath, 'r'):
